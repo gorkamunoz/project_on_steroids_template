@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from . import agents, core, notes
+from . import agents, core, notes, sync
 
 HERE = Path(__file__).parent
 app = FastAPI(title=f"{core.PROJECT_NAME} dashboard")
@@ -32,6 +32,7 @@ def page(request: Request, name: str, **ctx) -> HTMLResponse:
         nav_waiting=sum(1 for t in core.list_threads() if t["waiting_on"] == core.ME),
         nav_active=agents.active_runs(), nav_paused=agents.is_paused(),
         nav_alive=agents.watcher_alive(), nav_pending=bool(core.pending_threads()), team=core.team(),
+        nav_sync=sync.status(),
     )
     return templates.TemplateResponse(request, name, ctx)
 
@@ -88,6 +89,7 @@ def discussion_new_form(request: Request, link: str = ""):
 def discussion_new(title: str = Form(...), type: str = Form(...), body: str = Form(""),
                    links: str = Form(""), waiting_on: str = Form("agents"), model: str = Form("")):
     t = core.create_thread(title, type, core.ME, body, links=links, waiting_on=waiting_on, model=model or None)
+    sync.after_change([t["path"]], f"thread #{t['id']}: new {type} by {core.ME}", agent_busy=bool(agents.active_runs()))
     return RedirectResponse(f"/discussion/{t['id']}", status_code=303)
 
 
@@ -97,17 +99,25 @@ def thread_page(request: Request, tid: int):
     if not t:
         raise HTTPException(404, "thread not found")
     links = [(*core.resolve_link(x, core.link_index()), x) for x in t["links"]]
-    return page(request, "thread.html", t=t, links=links)
+    held = any(h["id"] == tid for h in sync.held_threads())
+    return page(request, "thread.html", t=t, links=links, held=held)
 
 
 @app.post("/discussion/{tid}/comment")
 def thread_comment(tid: int, body: str = Form(""), status: str = Form(""), waiting_on: str = Form(""),
                    model: str = Form("")):
     try:
-        core.add_comment(tid, core.ME, body, status or None, waiting_on or None, model or None)
+        t = core.add_comment(tid, core.ME, body, status or None, waiting_on or None, model or None)
+        sync.after_change([t["path"]], f"thread #{tid}: comment by {core.ME}", agent_busy=bool(agents.active_runs()))
     except ValueError:
         pass  # empty submit: just reload
     return RedirectResponse(f"/discussion/{tid}#bottom", status_code=303)
+
+
+@app.post("/sync")
+def sync_now(request: Request):
+    sync.safe_sync(pull=not agents.active_runs())  # while an agent works here, only push
+    return RedirectResponse(request.headers.get("referer") or "/", status_code=303)
 
 
 @app.get("/labs", response_class=HTMLResponse)

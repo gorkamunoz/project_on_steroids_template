@@ -4,6 +4,7 @@
 <p class="row">{{ m.tstatus(t.status) }} {{ m.ttype(t.type) }} {{ m.waiting(t.waiting_on) }}
   <span class="muted small">opened by <b>{{ t.author }}</b> · {{ t.created }}</span></p>
 {% for r in nav_active if r.thread == t.id %}<p class="banner">🤖 An agent is working on this thread now. <a href="/agents/{{ r.id }}">Watch the run →</a></p>{% endfor %}
+{% if held %}<p class="banner">✉️ <b>Not sent yet.</b> Your message stays on this computer until your agent starts on it{% if not nav_alive %}, and <b>your agent watcher isn't running</b>: start it with <code>./run_agents.sh</code>{% elif nav_paused %}, and your watcher is <b>paused</b> (<a href="/agents">Agents</a>){% else %} (any moment now){% endif %}.</p>{% endif %}
 {% if t.wake_at %}<p class="banner">⏰ Snoozed: an agent will look at this again after <b>{{ t.wake_at }}</b>.</p>{% endif %}
 <div class="layout"><div>
   <div class="comment {{ 'human' if core.is_human(t.author) }}"><div class="head"><b>{{ t.author }}</b> · {{ t.created }}</div>

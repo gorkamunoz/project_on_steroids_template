@@ -94,7 +94,7 @@ def test_human_alias_and_config(root, monkeypatch):
         core.add_comment(1, "agent:a", "x", waiting_on="not a name")
 
 
-def test_team(root):
+def test_team(root, monkeypatch):
     core.create_thread("from bob", "task", "bob", "hi")
     core.add_comment(1, "carla", "me too")
     assert core.team_info() == {"people": ["alice", "bob", "carla"], "fetched": "", "source": "threads"}
@@ -102,3 +102,5 @@ def test_team(root):
     assert core.team() == ["alice", "bob", "dave"]  # GitHub list (+ me) replaces the guess
     core.add_comment(1, "bob", "carla, can you look?", waiting_on="carla")
     assert any("not in the team" in p for p in core.check())
+    monkeypatch.setattr(core, "EXAMPLE_TEAM", ["carla"])  # the template's demo members count too
+    assert core.team() == ["alice", "bob", "carla", "dave"] and core.check() == []

@@ -8,3 +8,7 @@ conda_env: project_template     # default conda environment created by ./setup.s
 # Aliases (opus, sonnet, ...) always resolve to the newest model of that family, so new versions need no edit.
 # Add a full model id (e.g. claude-opus-5-5) to pin a version; add new families here when they appear.
 agent_models: [opus, fable, sonnet, haiku]
+# The template's own GitHub repo: ./setup.sh offers to remove the example content in any other repo.
+template_repo: gorkamunoz/project_on_steroids_template
+# Template demo only: fake team members used by the example threads. Removed by `./dash examples --remove`.
+example_team: [bob, carla]

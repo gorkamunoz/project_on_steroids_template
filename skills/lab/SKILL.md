@@ -14,7 +14,9 @@ A lab is one experiment with one question. It's self-contained: someone should b
 ./dash lab-new --title "learning-rate sweep on the toy dataset" -p 1 -a agent:<you> \
    --hypothesis "Loss at step 1000 is minimised for lr in [1e-3, 3e-3]; larger lr diverges."
 ```
-This creates `labs/NNN-slug/{lab.yaml, report.md, figures/}` with status `planned`.
+This creates `labs/NNN-slug/{lab.yaml, report.md, figures/}` with status `planned`, and (in a shared repo)
+pushes the empty lab right away so nobody else takes the same number. `outputs_on:` records your machine's
+person: the `outputs/` folder stays here.
 
 **Parents**: list every lab whose *result motivated* this one or whose *code/checkpoint it reuses*.
 Usually 1, sometimes 2+ (merging lines of work). Leave it empty only for a genuinely new line of work.
@@ -50,4 +52,7 @@ Goal → Setup (data, model, key hyperparameters, seeds, compute) → Results (f
 - Several seeds before claiming an effect. Report the spread.
 - Reusable code → propose promoting it to `src/` (with tests) rather than copy-pasting between labs.
 - Heavy files only in `outputs/`. Run `./dash check` before you finish.
+- `outputs/` is only on the machine in `outputs_on`. A child lab that needs a parent's checkpoints from another
+  person's machine: ask on the thread first (or re-run the parent), and say which in the report. For outputs
+  the whole team needs, use shared storage (e.g. a cluster folder) and write its path in the report.
 - If a lab changes our understanding of a concept, update the wiki page and cite `[[lab:N]]`.

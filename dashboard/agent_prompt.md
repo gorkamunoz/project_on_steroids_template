@@ -22,4 +22,5 @@ Your `./dash` author name is already set (DASH_AUTHOR={author}), and `--waiting-
    and fix any problems it reports.
 7. Commit your work: `git add` only the files you created or changed (including the discussion/ files you
    touched). Never `git add -A`, never commit outputs/ or large files. Use the message
-   `thread #{tid}: <summary>`. Never push, never rewrite history, never discard other people's uncommitted changes.
+   `thread #{tid}: <summary>`. Never push (the watcher syncs with the team after you finish), never rewrite
+   history, never discard other people's uncommitted changes.

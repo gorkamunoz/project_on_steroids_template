@@ -3,7 +3,9 @@
 #   ./setup.sh
 # 1. creates/updates the conda env named in project.yaml (conda_env) from environment.yml
 # 2. checks the external tools: git, LaTeX (for notes/), Claude Code (for agents)
-# 3. runs the dashboard tests and ./dash check
+# 3. you and the team: GitHub login (gh), local.yaml (`me`), the git remote, the thread merge rule,
+#    and (in a new project made from the template) removing the example content
+# 4. runs the dashboard tests and ./dash check
 set -uo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
@@ -56,7 +58,41 @@ if [ ! -d .git ]; then
   git init -q -b main && ok "initialised a git repository (make your first commit when ready)"
 fi
 
-echo "== 3. self-test"
+echo "== 3. you and the team (GitHub)"
+GH="$(dirname "$PY")/gh"; [ -x "$GH" ] || GH="$(command -v gh || true)"
+if [ -n "$GH" ] && "$GH" auth status >/dev/null 2>&1; then
+  ok "gh: logged in to GitHub"
+else
+  miss "gh is not logged in to GitHub. Run:  $GH auth login   (then re-run ./setup.sh)"
+fi
+if grep -q "^me:" local.yaml 2>/dev/null; then
+  ok "local.yaml: $(grep '^me:' local.yaml)"
+else
+  ME=""
+  [ -n "$GH" ] && ME="$("$GH" api user --jq .login 2>/dev/null || true)"
+  if [ -z "$ME" ] && [ -t 0 ]; then read -rp "  Your GitHub username: " ME; fi
+  if [ -n "$ME" ]; then
+    { [ -f local.yaml ] || echo "# This clone only (git-ignored). me = your GitHub username; port / conda_env override project.yaml."
+      echo "me: $ME"; } >> local.yaml
+    ok "local.yaml: me: $ME"
+  else
+    miss "who are you? Put 'me: <your GitHub username>' in local.yaml"
+  fi
+fi
+ORIGIN="$(git remote get-url origin 2>/dev/null || true)"
+if [ -n "$ORIGIN" ]; then
+  ok "git remote: $ORIGIN (changes sync with the team automatically)"
+else
+  miss "no git remote: working locally only. To share: git remote add origin https://github.com/<owner>/<repo>.git"
+fi
+PYTHONPATH="$DIR" "$PY" -c "from dashboard import sync; sync.ensure_config()" && ok "thread merge rule registered (git config merge.dash-thread)"
+TEMPLATE="$(cfg template_repo '')"
+if ls -d labs/*-example-* >/dev/null 2>&1 && [ -n "$TEMPLATE" ] && [[ "$ORIGIN" != *"$TEMPLATE"* ]] && [ -t 0 ]; then
+  read -rp "  This looks like a new project made from the template. Remove the example content? [Y/n] " A
+  if [[ ! "$A" =~ ^[Nn] ]]; then ./dash examples --remove && ok "example content removed (commit it when ready)"; fi
+fi
+
+echo "== 4. self-test"
 "$PY" -m pytest dashboard/tests -q -p no:warnings 2>&1 | tail -1
 ./dash check | tail -1
 

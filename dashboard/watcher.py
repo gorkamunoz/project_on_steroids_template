@@ -24,9 +24,10 @@ import time
 import uuid
 from pathlib import Path
 
-from . import agents, core
+from . import agents, core, sync
 
 POLL_S = int(os.environ.get("AGENT_POLL_S", "30"))
+SYNC_S = int(os.environ.get("AGENT_SYNC_S", "120"))  # pull/push with the team this often
 TIMEOUT_S = float(os.environ.get("AGENT_TIMEOUT_H", "6")) * 3600
 AUTHOR = "agent:worker"
 WATCHER = "agent:watcher"
@@ -71,7 +72,16 @@ def handle(t: dict) -> dict:
     rid = dt.datetime.now().strftime("%Y%m%d-%H%M%S") + f"-t{tid}"
     sid = str(uuid.uuid4())
     who = core.last_human(t) or core.ME
-    core.set_meta(tid, wake_at=None, run_by=core.ME)  # this machine's agent now handles the thread
+    trigger = t.get("trigger", "")
+    t = core.set_meta(tid, wake_at=None, run_by=core.ME)  # this machine's agent now handles the thread
+    # Publish the request now that an agent is on it (it was held back until now), then sync.
+    sync.commit([t["path"]], f"thread #{tid}: {core.ME}'s agent started", include_held=True)
+    res = sync.safe_sync()
+    tid = res.get("mapping", {}).get(("thread", tid), tid)  # renumbered if someone pushed a #tid first
+    if not res.get("ok", True):
+        log(f"sync problem (continuing locally): {res.get('error', '')[:200]}")
+    t = core.get_thread(tid) or t  # may now include others' comments
+    t["trigger"] = trigger
     prompt = (PROMPT.read_text().replace("{tid}", str(tid)).replace("{title}", t["title"])
               .replace("{trigger}", t.get("trigger", "")).replace("{author}", AUTHOR)
               .replace("{human}", who))
@@ -121,6 +131,10 @@ def handle(t: dict) -> dict:
                          f"The agent run [{rid}](/agents/{rid}) ended (**{run['status']}**) without replying "
                          f"on this thread, so I'm handing it back to you. Reply to retry.",
                          waiting_on=who)
+    after = core.get_thread(tid)
+    if after:  # the agent should have committed its work; make sure the thread itself is
+        sync.commit([after["path"]], f"thread #{tid}: agent run {rid} ({run['status']})")
+    sync.safe_sync()
     return run
 
 
@@ -137,9 +151,15 @@ def main(argv=None) -> None:
     ap.add_argument("--dry-run", action="store_true", help="only print what would be launched")
     args = ap.parse_args(argv)
     mark_interrupted()
-    log(f"watcher started (root={core.ROOT}, poll={POLL_S}s, claude={claude_bin()})")
+    log(f"watcher started for {core.ME} (root={core.ROOT}, poll={POLL_S}s, sync={SYNC_S}s, claude={claude_bin()})")
+    last_sync = 0.0
     while True:
         agents.heartbeat()
+        if not args.dry_run and time.time() - last_sync > SYNC_S:
+            res = sync.safe_sync()
+            last_sync = time.time()
+            if not res.get("ok", True):
+                log(f"sync problem: {res.get('error', '')[:200]}")
         pending = [] if agents.is_paused() else core.pending_threads()
         if args.dry_run:
             for t in pending:
@@ -147,6 +167,7 @@ def main(argv=None) -> None:
             return
         if pending:
             handle(pending[0])
+            last_sync = time.time()
             if args.once:
                 return
             continue

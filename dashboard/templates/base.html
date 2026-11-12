@@ -15,9 +15,13 @@
   <a href="/agents">Agents{% if nav_active %} <span class="dot run" title="agent working"></span>{% elif nav_pending and not nav_alive %} <span class="dot stopped" title="threads queued but watcher not running"></span>{% elif nav_paused %} <span class="dot paused" title="paused"></span>{% endif %}</a>
   <a href="/browse/src">Src</a>
   <form action="/search"><input name="q" placeholder="Search…" value="{{ q|default('') }}"></form>
+  <form method="post" action="/sync" class="syncform" title="{{ nav_sync.error or (nav_sync.notes|join('; ')) or 'pull others\' changes and push yours' }}">
+    <button class="linkbtn small {{ '' if nav_sync.ok else 'bad' }}">{% if not nav_sync.remote %}⟳ no remote{% elif not nav_sync.ok %}⚠ sync problem{% else %}⟳ synced {{ nav_sync.ago }}{% endif %}</button></form>
   <span class="muted small" title="you (me in local.yaml)">👤 {{ core.ME }}</span>
 </nav></header>
-<main>{% block content %}{% endblock %}</main>
+<main>{% if not nav_sync.ok and nav_sync.error %}<p class="banner warn">⚠ Sync problem: {{ nav_sync.error }}</p>{% endif %}
+{% for n in nav_sync.notes if 'is now #' in n %}<p class="banner">ℹ️ {{ n }}</p>{% endfor %}
+{% block content %}{% endblock %}</main>
 <script src="/static/vendor/katex/katex.min.js"></script>
 {% block scripts %}{% endblock %}
 <script src="/static/app.js"></script>

@@ -76,7 +76,18 @@ def cmd_comment(args):
 
 
 def cmd_lab_new(args):
+    from . import sync
+    # Reserve the number with the team: pull first, push the new lab right away, so a lab folder never
+    # has to be renumbered while a job writes into its outputs/.
+    shared = sync.is_repo() and bool(sync.remote_url())
+    if shared:
+        sync.safe_sync()
     p = core.create_lab(args.title, _author(args), args.parents, args.hypothesis or "", args.tags)
+    if shared and sync.commit([core.rel(p)], f"{core.lab_code(int(p.name.split('-')[0]))}: created ({p.name})"):
+        res = sync.safe_sync()
+        new = res.get("mapping", {}).get(("lab", int(p.name.split("-")[0])))
+        if new:  # someone pushed the same number in the last seconds
+            p = core.lab_dir(new)
     print(f"created {core.rel(p)}/  (lab.yaml, report.md, figures/)")
 
 
@@ -152,7 +163,12 @@ def cmd_notes(args):
     elif args.action == "release":
         if not args.message:
             sys.exit("error: -m 'one-line summary' is required")
+        from . import sync
+        if not args.no_git:
+            sync.safe_sync()  # take the next version number after the team's latest release
         r = notes.release(args.message, _author(args), args.change, args.thread or "", use_git=not args.no_git)
+        if not args.no_git:
+            sync.safe_sync()  # push the commit and its tag
         for w in r["warnings"]:
             print("  " + w)
         print(f"released {r['version']} ({r['pages']} pages) in {r['dir']}/ · {r['diff'] or 'first version, no diff'}"
@@ -163,6 +179,30 @@ def cmd_notes(args):
             print(f"draft   {d['built']}  {d['pages']} pages  {d['pdf']}")
         for v in notes.list_versions():
             print(f"{v['version']}    {v['date']}  {v['pages']} pages  {v['summary']}")
+
+
+def cmd_sync(args):
+    from . import sync
+    try:
+        r = sync.sync()
+    except sync.SyncError as e:
+        sys.exit(f"sync problem: {e}")
+    for n in r.get("notes", []):
+        print("  " + n)
+    held = sync.status()["held"]
+    print("✓ synced with the team" + (f" ({held} message(s) held until your agent starts on them)" if held else ""))
+
+
+def cmd_examples(args):
+    if not args.remove:
+        sys.exit("usage: ./dash examples --remove   (deletes the template's example content)")
+    for p in core.remove_examples():
+        print(f"  removed {p}")
+
+
+def cmd_merge_thread(args):
+    from . import merge_thread
+    sys.exit(merge_thread.main([args.base, args.ours, args.theirs]))
 
 
 def cmd_check(args):
@@ -260,6 +300,18 @@ def main(argv=None):
     p.set_defaults(fn=cmd_notes)
 
     sub.add_parser("check", help="validate conventions: broken links, bad lab parents, formats").set_defaults(fn=cmd_check)
+
+    sub.add_parser("sync", help="pull the team's changes, push yours (also automatic)").set_defaults(fn=cmd_sync)
+
+    p = sub.add_parser("examples", help="--remove: delete the template's example content (once, in a new project)")
+    p.add_argument("--remove", action="store_true")
+    p.set_defaults(fn=cmd_examples)
+
+    p = sub.add_parser("merge-thread", help=argparse.SUPPRESS)  # git merge driver (see dashboard/merge_thread.py)
+    p.add_argument("base")
+    p.add_argument("ours")
+    p.add_argument("theirs")
+    p.set_defaults(fn=cmd_merge_thread)
 
     args = ap.parse_args(argv)
     try:

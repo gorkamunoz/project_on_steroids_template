@@ -107,3 +107,8 @@ dl.meta dd { margin: 0; }
 .ev.error { border-color: var(--failed); font-family: var(--mono); font-size: 0.85em; white-space: pre-wrap; }
 .ev.result { border-color: var(--done); background: var(--panel); }
 .r-running { color: var(--done); } .r-done { color: var(--muted); } .r-failed, .r-timeout, .r-interrupted { color: var(--failed); }
+
+.syncform { margin: 0; }
+.linkbtn { background: none; border: none; padding: 0; cursor: pointer; color: var(--muted); font: inherit; }
+.linkbtn:hover { color: var(--accent); }
+.linkbtn.bad { color: var(--failed); }

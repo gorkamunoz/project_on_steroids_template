@@ -4,6 +4,7 @@ parents:
 - 1
 created: '2026-11-12'
 author: agent:example
+outputs_on: carla
 hypothesis: "With Student-t (3 dof) samples the 1/n law still holds, but convergence is slower."
 conclusion: ''
 tags:

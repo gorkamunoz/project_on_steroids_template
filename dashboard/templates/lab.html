@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}{{ lab.code }} {{ lab.title }}{% endblock %}
 {% block content %}
 <h1><span class="muted">{{ lab.code }}</span> {{ lab.title }}</h1>
-<p class="row">{{ m.lab_status(lab.status) }} <span class="muted small">{{ lab.created }}{% if lab.author %} · {{ lab.author }}{% endif %}</span>
+<p class="row">{{ m.lab_status(lab.status) }} <span class="muted small">{{ lab.created }}{% if lab.author %} · {{ lab.author }}{% endif %}{% if lab.outputs_on %} · outputs on {{ lab.outputs_on }}'s machine{% endif %}</span>
   <a class="small" href="/labs?focus={{ lab.id }}">show in graph</a>
   <a class="small" href="/discussion/new?link=lab:{{ lab.id }}">+ thread about this lab</a></p>
 {% if lab.error %}<p class="warn">⚠ {{ lab.error }}</p>{% endif %}

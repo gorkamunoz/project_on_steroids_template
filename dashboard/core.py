@@ -15,6 +15,7 @@ import os
 import posixpath
 import re
 import subprocess
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -100,6 +101,7 @@ def as_list(v) -> list:
 
 AGENT_MODELS = as_list(CONFIG.get("agent_models")) or ["opus"]  # project.yaml; first = default
 DEFAULT_MODEL = AGENT_MODELS[0]
+EXAMPLE_TEAM = as_list(CONFIG.get("example_team"))  # template demo only; `./dash examples --remove` drops it
 
 
 # ---------------------------------------------------------------- team
@@ -118,8 +120,9 @@ def _team_cache() -> Path:
 def refresh_team(timeout: float = 20) -> list[str] | None:
     """Ask GitHub who can access this repo (`gh` must be installed and logged in). Returns the
     usernames and caches them, or None if GitHub can't be reached."""
+    gh = Path(sys.executable).parent / "gh"  # installed in the project's conda env
     try:
-        res = subprocess.run(["gh", "api", "repos/{owner}/{repo}/collaborators", "--paginate",
+        res = subprocess.run([str(gh) if gh.exists() else "gh", "api", "repos/{owner}/{repo}/collaborators", "--paginate",
                               "--jq", ".[].login"], cwd=ROOT, capture_output=True, text=True, timeout=timeout)
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -139,7 +142,7 @@ def team_info() -> dict:
         people, fetched, source = [], "", "threads"
         for t in list_threads():  # no GitHub list yet: everyone who has written in a thread
             people += [a for a in [t["author"], *(c["author"] for c in t["comments"])] if is_human(a)]
-    people = sorted(set(people) | {ME}, key=str.lower)
+    people = sorted(set(people) | {ME} | set(EXAMPLE_TEAM), key=str.lower)
     return {"people": people, "fetched": fetched, "source": source}
 
 
@@ -428,6 +431,7 @@ def parse_lab(d: Path) -> dict:
         "status": meta.get("status", "planned"),
         "parents": parents, "children": [],
         "created": meta.get("created", ""), "author": meta.get("author", ""),
+        "outputs_on": meta.get("outputs_on", ""),
         "hypothesis": meta.get("hypothesis", ""), "conclusion": meta.get("conclusion", ""),
         "tags": as_list(meta.get("tags")), "metrics": metrics,
         "wiki": as_list(meta.get("wiki")),
@@ -486,12 +490,37 @@ def create_lab(title: str, author: str, parents=None, hypothesis: str = "", tags
         path = d / f"{lid:03d}-{slugify(title, 40)}"
         (path / "figures").mkdir(parents=True)
         meta = {"title": title, "status": "planned", "parents": parents, "created": today(),
-                "author": author, "hypothesis": hypothesis or "TODO: what do we expect and why?",
+                "author": author, "outputs_on": ME, "hypothesis": hypothesis or "TODO: what do we expect and why?",
                 "conclusion": "", "tags": as_list(tags), "metrics": {}, "wiki": [], "threads": []}
         (path / "lab.yaml").write_text(yaml.safe_dump(meta, sort_keys=False, allow_unicode=True, width=1000))
         (path / "report.md").write_text(
             f"# {lab_code(lid)} · {title}\n\n## Goal\n\n## Setup\n\n## Results\n\n## Conclusion\n\n## Next steps\n")
     return path
+
+
+def remove_examples() -> list[str]:
+    """Delete the template's example content (everything named `example`) and the demo team."""
+    import shutil
+    removed = []
+    for pattern in ("labs/*-example-*", "wiki/example-*", "discussion/*-example-*", "refs/*example*"):
+        for p in sorted(ROOT.glob(pattern)):
+            shutil.rmtree(p) if p.is_dir() else p.unlink()
+            removed.append(rel(p) if p.exists() else p.relative_to(ROOT).as_posix())
+    idx = ROOT / "wiki" / "index.md"
+    if idx.exists():
+        lines = idx.read_text().splitlines(keepends=True)
+        keep = [l for l in lines if "(example, delete me)" not in l]
+        if keep != lines:
+            idx.write_text("".join(keep))
+            removed.append("wiki/index.md: example lines")
+    cfg = ROOT / "project.yaml"
+    if cfg.exists():
+        lines = cfg.read_text().splitlines(keepends=True)
+        keep = [l for l in lines if "example_team" not in l and not l.startswith("# Template demo only")]
+        if keep != lines:
+            cfg.write_text("".join(keep))
+            removed.append("project.yaml: example_team")
+    return removed
 
 
 # ---------------------------------------------------------------- wiki / refs / skills

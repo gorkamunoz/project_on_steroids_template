@@ -5,6 +5,7 @@ channels: [conda-forge]
 dependencies:
   - python=3.11
   - pip
+  - gh            # GitHub CLI: who you are and who is on the team (./setup.sh, ./dash team)
   - pip:
       # dashboard
       - fastapi

@@ -42,7 +42,9 @@ its person wrote the latest message, or when a snooze set by their agent has exp
 says whose machine handles it). Its instructions are in `dashboard/agent_prompt.md`. Consequences:
 - Always reply on the thread before you finish. If you don't, the watcher hands the thread back to the human.
 - For long jobs, start them in the background and `./dash snooze <id> --hours H`. You'll be relaunched to check on them.
-- Commit your own work (only the files you touched). Never push.
+- Commit your own work (only the files you touched). Never push: the watcher syncs with the team (pull, then
+  push) after you finish. Thread and lab numbers can change during a sync if someone else pushed the same
+  number first; links in what you wrote are updated, and `./dash lab-new` reserves its number right away.
 - The model of each run is set per thread by the human (a `model:` field in the thread, chosen from the dropdown;
   the list and the default are `agent_models` in `project.yaml`). Don't change it yourself. If you know of a
   Claude model family that is missing from `agent_models`, open an `idea` thread suggesting to add it (search first,
@@ -74,8 +76,8 @@ Types: `decision | task | question | idea | bug`. Status: `open | in-progress | 
 Optional `model:` (set by a person from the dashboard) is the model the agent watcher runs on that thread;
 `run_by:` (set by the watcher) is whose agent handles it.
 
-**Lab** (`labs/012-beta-sweep/lab.yaml`): `title, status, parents, created, author, hypothesis,
-conclusion, tags, metrics, wiki, threads`. Status: `planned | running | done | failed | abandoned`.
+**Lab** (`labs/012-beta-sweep/lab.yaml`): `title, status, parents, created, author, outputs_on, hypothesis,
+conclusion, tags, metrics, wiki, threads`. `outputs_on` = whose machine holds its `outputs/` (set by `lab-new`). Status: `planned | running | done | failed | abandoned`.
 `parents` = ids of labs this one builds on (their results motivated it or it reuses their code/checkpoints).
 This field draws the lineage graph, so fill it carefully. Create with `./dash lab-new`.
 
@@ -108,11 +110,14 @@ The same operations are available over HTTP (`GET/POST /api/threads`, `POST /api
 
 - Conda env named in `project.yaml` (`conda_env`, Python 3.11): `conda activate <conda_env>`. If you install a package, add it to
   `environment.yml` in the same change, because `./setup.sh` rebuilds the env from that file on other machines.
-- The project is a git repo. Commit only when asked or when a thread says to. Small, descriptive commits.
+- The project is a git repo shared on GitHub; each person has a clone. Commit only when asked or when a thread
+  says to (autonomous runs: always, see above). Small, descriptive commits. Never push, never rewrite history.
 - **Never commit large artifacts.** Checkpoints, datasets, raw arrays and logs go in `labs/NNN-*/outputs/`
   (git-ignored) or a top-level `data/` (git-ignored). Commit configs, code, small result summaries
   (`results.json`/`.csv` < 1 MB) and figures. `./dash check` flags files > 5 MB that git would pick up.
 - Every lab must be reproducible from what *is* committed: config, seed, code (or the `src/` commit hash it used).
+- Outputs live only on the machine that made them (`outputs_on`). If you need outputs from someone else's
+  machine, don't silently redo the work: say so on the thread and ask (or propose re-running).
 
 ## Writing style for anything the human reads
 
