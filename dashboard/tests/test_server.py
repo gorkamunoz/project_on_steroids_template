@@ -38,7 +38,7 @@ def test_forms_create_and_comment(client):
                     follow_redirects=False)
     assert r.status_code == 303 and r.headers["location"] == "/discussion/3"
     t = core.get_thread(3)
-    assert t["author"] == core.HUMAN and t["links"] == ["lab:1", "wiki:elbo"]
+    assert t["author"] == core.ME and t["links"] == ["lab:1", "wiki:elbo"]
     client.post("/discussion/1/comment", data={"body": "Go with MIG", "status": "open", "waiting_on": ""})
     t = core.get_thread(1)
     assert t["comments"][-1]["body"].startswith("Go with MIG") and t["waiting_on"] == "agents"
@@ -46,7 +46,7 @@ def test_forms_create_and_comment(client):
 
 def test_json_api(client):
     r = client.post("/api/threads", json={"title": "API", "type": "question", "author": "agent:x"})
-    assert r.status_code == 201 and r.json()["waiting_on"] == core.HUMAN
+    assert r.status_code == 201 and r.json()["waiting_on"] == core.ME
     tid = r.json()["id"]
     r = client.post(f"/api/threads/{tid}/comments", json={"author": "agent:x", "status": "closed"})
     assert r.json()["status"] == "closed"

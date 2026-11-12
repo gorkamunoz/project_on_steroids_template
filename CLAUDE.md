@@ -8,14 +8,16 @@
 
 ## How the team works
 
-The human lead is named in `project.yaml` (`human:`) and is called **the human** below. On the command line
-you can always write `human` instead of their handle, e.g. `--waiting-on human`.
+The project has a team of people (the GitHub collaborators of the repo, by username; `./dash team`) and no lead.
+Each person has their own clone, dashboard and agents. **The human** below means the person you are working
+for: the one whose message started your run (the watcher tells you who). On the command line `human` stands
+for that person, e.g. `--waiting-on human`; to ask someone else, give their username (`--waiting-on bob`).
 You are one of several agents working on the project, often in parallel and without
 shared memory. Everything you know about the state of the project must come from the files, and everything
 the next agent needs must be written back to them.
 
-The human follows the project through a dashboard at http://localhost:<port> (`./run_server.sh`; port in
-`project.yaml`). It only *reads*
+Each person follows the project through their own dashboard at http://localhost:<port> (`./run_server.sh`;
+port in `project.yaml` or `local.yaml`). It only *reads*
 the folders below, so anything you write in the right format shows up there automatically.
 
 ## Session protocol
@@ -34,9 +36,10 @@ you can `export DASH_AUTHOR=agent:<role>` instead of passing `-a` each time.
 
 ## Autonomous runs
 
-Most sessions are started by the **agent watcher** (`./run_agents.sh`). It launches you headless for one
-thread when that thread is waiting on agents and the human has written the latest message, or when a snooze
-you set has expired. Its instructions are in `dashboard/agent_prompt.md`. Consequences:
+Most sessions are started by the **agent watcher** (`./run_agents.sh`). Each person runs their own, and it
+only serves that person: it launches you headless for one thread when that thread is waiting on agents and
+its person wrote the latest message, or when a snooze set by their agent has expired (`run_by:` in the thread
+says whose machine handles it). Its instructions are in `dashboard/agent_prompt.md`. Consequences:
 - Always reply on the thread before you finish. If you don't, the watcher hands the thread back to the human.
 - For long jobs, start them in the background and `./dash snooze <id> --hours H`. You'll be relaunched to check on them.
 - Commit your own work (only the files you touched). Never push.
@@ -67,8 +70,9 @@ Math: `$...$` inline, `$$...$$` display (KaTeX). Broken links show red in the da
 **Thread** (`discussion/0007-slug.md`): YAML front matter (`id, title, type, status, author, waiting_on,
 labels, links, created, updated`), body, then comments appended by `./dash comment`.
 Types: `decision | task | question | idea | bug`. Status: `open | in-progress | resolved | closed`.
-`waiting_on: <human> | agents | none` drives the dashboard's "Waiting on you" list. Be precise with it.
-Optional `model:` (set by the human from the dashboard) is the model the agent watcher runs on that thread.
+`waiting_on: <username> | agents | none` drives each person's "Waiting on you" list. Be precise with it.
+Optional `model:` (set by a person from the dashboard) is the model the agent watcher runs on that thread;
+`run_by:` (set by the watcher) is whose agent handles it.
 
 **Lab** (`labs/012-beta-sweep/lab.yaml`): `title, status, parents, created, author, hypothesis,
 conclusion, tags, metrics, wiki, threads`. Status: `planned | running | done | failed | abandoned`.

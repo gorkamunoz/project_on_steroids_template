@@ -1,10 +1,10 @@
-# Project settings, read by the dashboard, the ./dash CLI, the agent watcher and the launch scripts.
-# Edit these before running ./setup.sh for the first time.
+# Shared project settings (committed), read by the dashboard, the ./dash CLI, the agent watcher and the scripts.
+# Per-person settings live in local.yaml (git-ignored, written by ./setup.sh): `me` (your GitHub username),
+# and optionally `port` / `conda_env` to override the defaults below on your machine.
 name: My research project       # shown in the dashboard header, page titles and the notes PDF title
-human: alice                    # your handle: threads "waiting on <human>", your dashboard comments
-port: 8010                      # dashboard port: http://localhost:<port>
-conda_env: project_template         # conda environment created by ./setup.sh
-# Models the human can pick per thread in the dashboard (new-thread and reply forms). First entry = default.
+port: 8010                      # default dashboard port: http://localhost:<port>
+conda_env: project_template     # default conda environment created by ./setup.sh
+# Models anyone can pick per thread in the dashboard (new-thread and reply forms). First entry = default.
 # Aliases (opus, sonnet, ...) always resolve to the newest model of that family, so new versions need no edit.
 # Add a full model id (e.g. claude-opus-5-5) to pin a version; add new families here when they appear.
 agent_models: [opus, fable, sonnet, haiku]

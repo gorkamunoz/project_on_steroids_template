@@ -1,12 +1,13 @@
 ---
 name: discussion
-description: Post, answer and close threads in discussion/ (decisions for the human, tasks, questions, ideas, bugs). Use whenever you need input from the human, pick up a task, or report back.
+description: Post, answer and close threads in discussion/ (decisions for a person, tasks, questions, ideas, bugs). Use whenever you need input from a person on the team, pick up a task, or report back.
 ---
 
 # Discussion threads
 
-Threads are how agents and the human talk across sessions. Use `./dash` and don't hand-write the files
-(the format is in `dashboard/core.py`).
+Threads are how agents and the people on the team talk across sessions. Use `./dash` and don't hand-write
+the files (the format is in `dashboard/core.py`). `waiting_on` is `agents`, `none`, or a person's username;
+`human` is short for the person whose message started your run (see CLAUDE.md).
 
 ## Picking up work
 1. `./dash inbox`, then `./dash show <id>`.
@@ -20,7 +21,8 @@ on it (log path, PID), then `./dash snooze <id> --hours H -b "what's running, wh
 The watcher relaunches an agent on the thread after that time.
 
 ## Asking the human for a decision
-Open a `decision` thread (it defaults to `waiting_on: <human>`). Structure the body like this:
+Open a `decision` thread (it defaults to waiting on the person you work for; pass `--waiting-on <username>`
+if someone else on the team should decide). Structure the body like this:
 
 ```markdown
 **Decision needed:** <one line>
@@ -35,12 +37,13 @@ Open a `decision` thread (it defaults to `waiting_on: <human>`). Structure the b
 **If no answer:** I'll continue with <safe default / other work>.
 ```
 
-Don't block on it: continue with work that doesn't depend on the answer. When the human replies, the thread
-flips to `waiting_on: agents` automatically and shows in `./dash inbox`.
+Don't block on it: continue with work that doesn't depend on the answer. When that person replies, the
+thread flips to `waiting_on: agents` automatically and their agent picks it up.
 
 ## Other types
 - `question`: a factual or interpretive question for the human (also defaults to waiting on the human).
-- `task`: work to be done. The human opens most of these, but agents may open follow-ups (`--waiting-on agents`).
+- `task`: work to be done. People open most of these, but agents may open follow-ups (`--waiting-on human`
+  so the person you work for sees it; a `waiting_on: agents` thread only runs when a person writes on it).
 - `idea`: something worth exploring later (`waiting_on: none`).
 - `bug`: something broken in code, data or the dashboard.
 

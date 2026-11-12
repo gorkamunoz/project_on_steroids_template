@@ -34,6 +34,8 @@ __pycache__/
 .idea/
 .DS_Store
 .dash.lock
+.dash/
+local.yaml
 .claude/settings.local.json
 
 # --- LaTeX build files (keep .tex/.bib/.pdf) ---

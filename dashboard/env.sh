@@ -1,9 +1,14 @@
 # Sourced by ./run_server.sh, ./run_agents.sh, ./dash, ./setup.sh.
-# Reads project.yaml and sets: ENV_NAME (conda env), PORT, and PY (that env's python, unless SETUP_ONLY=1).
+# Reads project.yaml (shared) and local.yaml (this clone, overrides it) and sets: ENV_NAME (conda env),
+# PORT, and PY (that env's python, unless SETUP_ONLY=1).
 # PY lookup order: $PROJECT_PY, the active conda env, common conda install folders, `conda info --base`.
-cfg() {  # cfg KEY DEFAULT -> value of "KEY: value" in project.yaml (comments and quotes stripped)
+_cfg1() {  # _cfg1 FILE KEY -> value of "KEY: value" in FILE (comments and quotes stripped)
+  sed -n "s/^$2:[[:space:]]*//p" "$1" 2>/dev/null | head -1 | sed 's/[[:space:]]*#.*$//; s/^["'\'']//; s/["'\'']$//; s/[[:space:]]*$//'
+}
+cfg() {  # cfg KEY DEFAULT -> local.yaml value, else project.yaml value, else DEFAULT
   local v
-  v="$(sed -n "s/^$1:[[:space:]]*//p" "$DIR/project.yaml" 2>/dev/null | head -1 | sed 's/[[:space:]]*#.*$//; s/^["'\'']//; s/["'\'']$//; s/[[:space:]]*$//')"
+  v="$(_cfg1 "$DIR/local.yaml" "$1")"
+  [ -n "$v" ] || v="$(_cfg1 "$DIR/project.yaml" "$1")"
   echo "${v:-$2}"
 }
 ENV_NAME="${PROJECT_ENV:-$(cfg conda_env research)}"

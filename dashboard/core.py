@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import datetime as dt
 import fcntl
+import getpass
 import html
+import json
 import os
 import posixpath
 import re
@@ -20,29 +22,52 @@ import markdown as md_lib
 import yaml
 
 ROOT = Path(os.environ.get("PROJECT_ROOT", Path(__file__).resolve().parent.parent))
-_CONFIG_FILE = Path(__file__).resolve().parent.parent / "project.yaml"
+_HERE = Path(__file__).resolve().parent.parent
+_CONFIG_FILE = _HERE / "project.yaml"   # shared, committed
+_LOCAL_FILE = _HERE / "local.yaml"      # this clone only, git-ignored: me, port, conda_env
 
 
-def _load_config() -> dict:
+def _load_yaml_file(path: Path) -> dict:
     try:
-        data = yaml.load(_CONFIG_FILE.read_text(), Loader=yaml.BaseLoader)
+        data = yaml.load(path.read_text(), Loader=yaml.BaseLoader)
     except (OSError, yaml.YAMLError):
         data = {}
     return data if isinstance(data, dict) else {}
 
 
-CONFIG = _load_config()  # project.yaml: name, human, port, conda_env
+CONFIG = _load_yaml_file(_CONFIG_FILE)  # project.yaml: name, port, conda_env, agent_models
+LOCAL = _load_yaml_file(_LOCAL_FILE)    # local.yaml overrides port / conda_env and says who `me` is
+CONFIG.update({k: v for k, v in LOCAL.items() if k in ("port", "conda_env") and v})
 PROJECT_NAME = CONFIG.get("name") or "Research project"
-HUMAN = (CONFIG.get("human") or "human").strip()
 PORT = CONFIG.get("port") or "8010"
+# The person using this clone: their GitHub username (written to local.yaml by ./setup.sh).
+ME = (os.environ.get("DASH_ME") or LOCAL.get("me") or getpass.getuser()).strip()
 
 THREAD_TYPES = ["decision", "task", "question", "idea", "bug"]
 THREAD_STATUSES = ["open", "in-progress", "resolved", "closed"]
-WAITING = [HUMAN, "agents", "none"]  # "human" is accepted as an alias for HUMAN
+WAITING_SPECIAL = ["agents", "none"]  # besides these, waiting_on names a person (a team member)
+PERSON_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def is_human(author: str) -> bool:
+    return bool(author) and not author.startswith("agent:")
+
+
+def requester() -> str:
+    """Who `human` means right now: the person whose message started this agent run (set by the
+    watcher), else the person using this clone."""
+    return (os.environ.get("DASH_REQUESTER") or ME).strip()
 
 
 def norm_waiting(w):
-    return HUMAN if w == "human" else w
+    if w is None:
+        return None
+    w = w.strip()
+    if w in ("human", "me"):
+        return requester()
+    if w not in WAITING_SPECIAL and not PERSON_RE.match(w):
+        raise ValueError(f"waiting_on must be 'agents', 'none' or a person's username, not {w!r}")
+    return w
 LAB_STATUSES = ["planned", "running", "done", "failed", "abandoned"]
 FIG_EXT = {".png", ".jpg", ".jpeg", ".svg", ".gif", ".webp"}
 LARGE_FILE = 5 * 1024 * 1024
@@ -75,6 +100,51 @@ def as_list(v) -> list:
 
 AGENT_MODELS = as_list(CONFIG.get("agent_models")) or ["opus"]  # project.yaml; first = default
 DEFAULT_MODEL = AGENT_MODELS[0]
+
+
+# ---------------------------------------------------------------- team
+
+def local_dir() -> Path:
+    """Git-ignored per-clone state (team cache, sync status)."""
+    d = ROOT / ".dash"
+    d.mkdir(exist_ok=True)
+    return d
+
+
+def _team_cache() -> Path:
+    return local_dir() / "team.json"
+
+
+def refresh_team(timeout: float = 20) -> list[str] | None:
+    """Ask GitHub who can access this repo (`gh` must be installed and logged in). Returns the
+    usernames and caches them, or None if GitHub can't be reached."""
+    try:
+        res = subprocess.run(["gh", "api", "repos/{owner}/{repo}/collaborators", "--paginate",
+                              "--jq", ".[].login"], cwd=ROOT, capture_output=True, text=True, timeout=timeout)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if res.returncode != 0:
+        return None
+    people = sorted({x.strip() for x in res.stdout.split() if x.strip()}, key=str.lower)
+    _team_cache().write_text(json.dumps({"people": people, "fetched": now()}))
+    return people
+
+
+def team_info() -> dict:
+    """{'people': [...], 'fetched': date or '', 'source': 'github' | 'threads'}."""
+    try:
+        data = json.loads(_team_cache().read_text())
+        people, fetched, source = list(data.get("people", [])), data.get("fetched", ""), "github"
+    except (OSError, ValueError):
+        people, fetched, source = [], "", "threads"
+        for t in list_threads():  # no GitHub list yet: everyone who has written in a thread
+            people += [a for a in [t["author"], *(c["author"] for c in t["comments"])] if is_human(a)]
+    people = sorted(set(people) | {ME}, key=str.lower)
+    return {"people": people, "fetched": fetched, "source": source}
+
+
+def team() -> list[str]:
+    return team_info()["people"]
 
 
 def thread_model(t: dict) -> str:
@@ -159,6 +229,7 @@ def parse_thread(path: Path) -> dict:
         "updated": meta.get("updated", meta.get("created", "")),
         "wake_at": meta.get("wake_at", ""),
         "model": meta.get("model", ""),
+        "run_by": meta.get("run_by", ""),
         "body": parts[0].strip(),
         "comments": comments,
         "path": rel(path),
@@ -179,7 +250,7 @@ def get_thread(tid: int) -> dict | None:
 def _check_author(author: str) -> str:
     author = (author or "").strip()
     if not author or '"' in author:
-        raise ValueError(f"author is required (use '{HUMAN}' or 'agent:<name>') and may not contain quotes")
+        raise ValueError(f"author is required (use '{ME}' or 'agent:<name>') and may not contain quotes")
     return author
 
 
@@ -194,12 +265,10 @@ def create_thread(title: str, type: str, author: str, body: str = "", links=None
         raise ValueError("title is required")
     waiting_on = norm_waiting(waiting_on)
     if waiting_on is None:
-        if author == HUMAN:
+        if is_human(author):
             waiting_on = "agents"
         else:
-            waiting_on = HUMAN if type in ("decision", "question") else "none"
-    if waiting_on not in WAITING:
-        raise ValueError(f"waiting_on must be one of {WAITING}")
+            waiting_on = requester() if type in ("decision", "question") else "none"
     d = ROOT / "discussion"
     d.mkdir(exist_ok=True)
     with locked():
@@ -241,11 +310,9 @@ def add_comment(tid: int, author: str, body: str = "", status: str | None = None
         new_status = meta.get("status", "open")
         if new_status in ("resolved", "closed"):
             waiting_on = "none"
-        elif waiting_on is None and author == HUMAN and body.strip():
-            waiting_on = "agents"  # the human answered -> ball is in the agents' court
+        elif waiting_on is None and is_human(author) and body.strip():
+            waiting_on = "agents"  # a person answered -> ball is in the agents' court
         if waiting_on is not None and waiting_on != meta.get("waiting_on"):
-            if waiting_on not in WAITING:
-                raise ValueError(f"waiting_on must be one of {WAITING}")
             meta["waiting_on"] = waiting_on
             notes.append(f"waiting on: {waiting_on}")
         old_model = meta.get("model") or DEFAULT_MODEL
@@ -285,27 +352,42 @@ def last_author(t: dict) -> str:
     return t["comments"][-1]["author"] if t["comments"] else t["author"]
 
 
-def pending_threads() -> list[dict]:
-    """Threads an autonomous agent should pick up now: waiting on agents and either the latest
-    entry is from the human (new instruction/answer) or a snooze set by an agent has expired."""
+def last_human(t: dict) -> str:
+    """The person who wrote last on the thread (whose request an agent run serves)."""
+    for a in [c["author"] for c in reversed(t["comments"])] + [t["author"]]:
+        if is_human(a):
+            return a
+    return ""
+
+
+def pending_threads(me: str | None = None) -> list[dict]:
+    """Threads the agent watcher of `me` (default: this clone's person) should pick up now. A thread
+    waiting on agents is mine when I wrote its latest entry (a new request or answer), or when my
+    agent snoozed it and the snooze has expired. Someone else's message on a thread that another
+    person's agent has snoozed doesn't start my agent; that agent reads it when it wakes up."""
+    me = me or ME
     out = []
     for t in list_threads():
         if t["status"] not in ("open", "in-progress") or t["waiting_on"] != "agents":
             continue
-        woke = bool(t["wake_at"]) and t["wake_at"] <= now()
-        if last_author(t) == HUMAN or woke:
-            t["trigger"] = f"snooze expired ({t['wake_at']})" if woke and last_author(t) != HUMAN \
-                else f"new message from {HUMAN}"
-            out.append(t)
+        owner = t["run_by"] or me
+        if last_author(t) == me and not (t["wake_at"] and owner != me):
+            t["trigger"] = f"new message from {me}"
+        elif t["wake_at"] and t["wake_at"] <= now() and owner == me:
+            t["trigger"] = f"snooze expired ({t['wake_at']})"
+        else:
+            continue
+        out.append(t)
     return sorted(out, key=lambda t: t["updated"])
 
 
 def snooze(tid: int, author: str, until: str, body: str = "") -> dict:
-    """Agent parks a thread (e.g. while training runs) and gets relaunched after `until`."""
+    """Agent parks a thread (e.g. while training runs) and gets relaunched after `until`, by the
+    watcher of the person whose machine it runs on (`run_by`)."""
     dt.datetime.strptime(until, "%Y-%m-%d %H:%M")  # validate format
     add_comment(tid, author, (body.strip() + "\n\n" if body.strip() else "") + f"_snoozed until {until}_",
                 waiting_on="agents")
-    return set_meta(tid, wake_at=until)
+    return set_meta(tid, wake_at=until, run_by=ME)
 
 
 # ---------------------------------------------------------------- labs
@@ -666,11 +748,15 @@ def check() -> list[str]:
         for w in l["wiki"]:
             if w not in idx["wiki"]:
                 problems.append(f"{l['dir']}: wiki page {w!r} does not exist")
+    people = team()
     for t in list_threads():
         if t["type"] not in THREAD_TYPES:
             problems.append(f"{t['path']}: type {t['type']!r} not in {THREAD_TYPES}")
         if t["status"] not in THREAD_STATUSES:
             problems.append(f"{t['path']}: status {t['status']!r} not in {THREAD_STATUSES}")
+        w = t["waiting_on"]
+        if w not in WAITING_SPECIAL and t["status"] in ("open", "in-progress") and w not in people:
+            problems.append(f"{t['path']}: waiting on {w!r}, who is not in the team {people}")
         if t["model"] and t["model"] not in AGENT_MODELS and t["status"] in ("open", "in-progress"):
             problems.append(f"{t['path']}: model {t['model']!r} not in agent_models {AGENT_MODELS} (project.yaml)")
     for r in list_refs():

@@ -24,7 +24,8 @@ dash              command-line tool used by agents (./dash -h)
 ## Start a new project
 
 1. Copy this folder and rename it.
-2. Edit `project.yaml`: `name`, `human` (your handle), `port`, `conda_env`.
+2. Edit `project.yaml`: `name`, and the default `port` and `conda_env`. Who you are goes in the git-ignored
+   `local.yaml` (`me: <your GitHub username>`), which `./setup.sh` writes.
 3. Fill in the **The project** section at the top of `CLAUDE.md` (research question, scope).
 4. `./setup.sh`: creates the conda env, checks the tools, runs the tests, and runs `git init`.
 5. Delete the examples (everything named `example`):

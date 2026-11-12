@@ -38,9 +38,9 @@ def cmd_inbox(args):
     print(f"{len(ts)} open thread(s) waiting on agents:" if ts else "Inbox empty: nothing waiting on agents.")
     for t in ts:
         print("  " + _row(t))
-    mine = [t for t in core.list_threads() if t["waiting_on"] == core.HUMAN]
+    mine = [t for t in core.list_threads() if t["waiting_on"] not in core.WAITING_SPECIAL]
     if mine:
-        print(f"\n{len(mine)} thread(s) waiting on {core.HUMAN} (don't act on these until answered):")
+        print(f"\n{len(mine)} thread(s) waiting on a person (don't act on these until answered):")
         for t in mine:
             print("  " + _row(t))
 
@@ -117,6 +117,17 @@ def cmd_snooze(args):
     print(f"#{t['id']} snoozed until {until}; an agent will be relaunched on it then")
 
 
+def cmd_team(args):
+    if args.refresh and core.refresh_team() is None:
+        print("could not reach GitHub (is `gh` installed and logged in, and is there a GitHub remote?)")
+    info = core.team_info()
+    src = f"GitHub collaborators, fetched {info['fetched']}" if info["source"] == "github" \
+        else "people seen in threads (run `./dash team --refresh` to load the GitHub collaborators)"
+    print(f"you: {core.ME}\nteam ({src}):")
+    for p in info["people"]:
+        print(f"  {p}")
+
+
 def cmd_agents(args):
     from . import agents
     if args.pause or args.resume:
@@ -176,7 +187,7 @@ def main(argv=None):
     p = sub.add_parser("threads", help="list open threads")
     p.add_argument("--all", action="store_true", help="include resolved/closed")
     p.add_argument("--type", choices=core.THREAD_TYPES)
-    p.add_argument("--waiting-on", choices=core.WAITING + ['human'])
+    p.add_argument("--waiting-on", help="agents | none | <username> | human (= the person who asked)")
     p.set_defaults(fn=cmd_threads)
 
     p = sub.add_parser("show", help="print a thread with all comments")
@@ -188,14 +199,14 @@ def main(argv=None):
     p.add_argument("--title", required=True)
     p.add_argument("--link", "-l", action="append", help="lab:3, wiki:some-concept, thread:2, ref:key (repeatable)")
     p.add_argument("--label", action="append")
-    p.add_argument("--waiting-on", choices=core.WAITING + ['human'], help="default: the human for decision/question by agents ('human' = name in project.yaml)")
+    p.add_argument("--waiting-on", help="agents | none | <username> | human (= the person whose message started this run). Default for agents: human for decision/question, else none")
     body_opts(p)
     p.set_defaults(fn=cmd_new)
 
     p = sub.add_parser("comment", help="reply to a thread and/or change its status")
     p.add_argument("id", type=int)
     p.add_argument("--status", "-s", choices=core.THREAD_STATUSES)
-    p.add_argument("--waiting-on", choices=core.WAITING + ['human'])
+    p.add_argument("--waiting-on", help="agents | none | <username> | human (= the person who asked)")
     body_opts(p)
     p.set_defaults(fn=cmd_comment)
 
@@ -228,6 +239,10 @@ def main(argv=None):
     p.add_argument("--until", help="'YYYY-MM-DD HH:MM'")
     body_opts(p)
     p.set_defaults(fn=cmd_snooze)
+
+    p = sub.add_parser("team", help="who you are (local.yaml) and the team (the repo's GitHub collaborators)")
+    p.add_argument("--refresh", action="store_true", help="reload the collaborator list from GitHub")
+    p.set_defaults(fn=cmd_team)
 
     p = sub.add_parser("agents", help="recent autonomous agent runs; --pause / --resume the watcher")
     p.add_argument("--pause", action="store_true")

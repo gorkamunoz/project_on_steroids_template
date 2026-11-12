@@ -36,7 +36,7 @@ nav .badge { background: var(--failed); color: #fff; border: none; margin-left: 
 .t-decision { color: var(--decision); } .t-task { color: var(--task); } .t-question { color: var(--question); }
 .t-idea { color: var(--idea); } .t-bug { color: var(--bug); }
 .st-open { color: var(--done); } .st-in-progress { color: var(--running); } .st-resolved { color: var(--decision); } .st-closed { color: var(--muted); }
-.w-gorka { color: var(--failed); } .w-agents { color: var(--running); }
+.w-me { color: var(--failed); } .w-agents { color: var(--running); } .w-person { color: var(--muted); }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 14px; align-items: start; }
 .grid .card { margin: 0; }

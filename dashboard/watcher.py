@@ -3,9 +3,10 @@
     ./run_agents.sh            # foreground
     ./run_agents.sh install    # systemd user service (always on)
 
-A thread needs an agent when it is waiting on agents AND (its latest entry is from the human OR an agent's
-snooze has expired). Runs are sequential (agents commit to the same working tree). If an agent
-ends without touching the thread, the watcher hands the thread back to the human so it never loops.
+Each person runs their own watcher, which only serves that person (`me` in local.yaml): a thread needs
+my agent when it is waiting on agents AND (I wrote its latest entry OR my agent's snooze has expired).
+Runs are sequential (agents commit to the same working tree). If an agent ends without touching the
+thread, the watcher hands the thread back to the person who asked, so it never loops.
 
 Model: the thread's `model` field (picked in the dashboard), else the first entry of agent_models in project.yaml.
 Env knobs: AGENT_POLL_S (30), AGENT_TIMEOUT_H (6), AGENT_BUDGET_USD, AGENT_PERMISSION_MODE (auto),
@@ -53,8 +54,9 @@ def build_cmd(prompt: str, session_id: str, tid: int, model: str) -> list[str]:
     return cmd
 
 
-def agent_env() -> dict:
+def agent_env(requester: str) -> dict:
     env = dict(os.environ)
+    env["DASH_REQUESTER"] = requester  # `--waiting-on human` in the agent = the person who asked
     env_bin = str(Path(sys.executable).parent)  # the project's conda env
     env["PATH"] = os.pathsep.join([env_bin, str(Path.home() / ".local/bin"), env.get("PATH", "/usr/bin:/bin")])
     env["CONDA_DEFAULT_ENV"] = core.CONFIG.get("conda_env", "")
@@ -68,24 +70,24 @@ def handle(t: dict) -> dict:
     tid = t["id"]
     rid = dt.datetime.now().strftime("%Y%m%d-%H%M%S") + f"-t{tid}"
     sid = str(uuid.uuid4())
-    if t["wake_at"]:
-        core.set_meta(tid, wake_at=None)
+    who = core.last_human(t) or core.ME
+    core.set_meta(tid, wake_at=None, run_by=core.ME)  # this machine's agent now handles the thread
     prompt = (PROMPT.read_text().replace("{tid}", str(tid)).replace("{title}", t["title"])
               .replace("{trigger}", t.get("trigger", "")).replace("{author}", AUTHOR)
-              .replace("{human}", core.HUMAN))
+              .replace("{human}", who))
     model = core.thread_model(t)
-    run = {"id": rid, "thread": tid, "title": t["title"], "trigger": t.get("trigger", ""), "model": model,
+    run = {"id": rid, "thread": tid, "title": t["title"], "trigger": t.get("trigger", ""), "model": model, "requester": who,
            "session_id": sid, "started": core.now(), "status": "running", "n_comments": len(t["comments"])}
     logf = agents.runs_dir() / f"{rid}.jsonl"
     log(f"run {rid}: thread #{tid} ({run['trigger']}, model {model})")
     with open(logf, "w") as out:
         try:
             proc = subprocess.Popen(build_cmd(prompt, sid, tid, model), cwd=core.ROOT, stdout=out,
-                                    stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, env=agent_env())
+                                    stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, env=agent_env(who))
         except OSError as e:
             run.update(status="failed", ended=core.now(), error=str(e))
             agents.save_run(run)
-            core.add_comment(tid, WATCHER, f"Could not start an agent: `{e}`", waiting_on=core.HUMAN)
+            core.add_comment(tid, WATCHER, f"Could not start an agent: `{e}`", waiting_on=who)
             return run
         run["pid"] = proc.pid
         agents.save_run(run)
@@ -118,7 +120,7 @@ def handle(t: dict) -> dict:
         core.add_comment(tid, WATCHER,
                          f"The agent run [{rid}](/agents/{rid}) ended (**{run['status']}**) without replying "
                          f"on this thread, so I'm handing it back to you. Reply to retry.",
-                         waiting_on=core.HUMAN)
+                         waiting_on=who)
     return run
 
 

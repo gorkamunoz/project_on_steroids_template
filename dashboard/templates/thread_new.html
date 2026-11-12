@@ -5,7 +5,7 @@
   <label>Title</label><input type="text" name="title" required autofocus>
   <div class="row">
     <span><label>Type</label><select name="type">{% for t in core.THREAD_TYPES %}<option {{ 'selected' if t == 'task' }}>{{ t }}</option>{% endfor %}</select></span>
-    <span><label>Waiting on</label><select name="waiting_on"><option>agents</option><option>{{ core.HUMAN }}</option><option>none</option></select></span>
+    <span><label>Waiting on</label><select name="waiting_on"><option value="agents">agents (mine)</option>{% for p in team %}<option>{{ p }}</option>{% endfor %}<option>none</option></select></span>
     <span><label>Agent model</label><select name="model">{% for x in core.AGENT_MODELS %}<option {{ 'selected' if x == core.DEFAULT_MODEL }}>{{ x }}</option>{% endfor %}</select></span>
   </div>
   <label>Description <span class="muted small">(markdown + $math$ + [[links]])</span></label><textarea name="body" style="min-height:220px"></textarea>

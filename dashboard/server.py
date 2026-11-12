@@ -29,9 +29,9 @@ def page(request: Request, name: str, **ctx) -> HTMLResponse:
     ctx.update(
         request=request, idx=idx, core=core,
         md=lambda text, base=None: core.render(text, idx, base),
-        nav_waiting=sum(1 for t in core.list_threads() if t["waiting_on"] == core.HUMAN),
+        nav_waiting=sum(1 for t in core.list_threads() if t["waiting_on"] == core.ME),
         nav_active=agents.active_runs(), nav_paused=agents.is_paused(),
-        nav_alive=agents.watcher_alive(), nav_pending=bool(core.pending_threads()),
+        nav_alive=agents.watcher_alive(), nav_pending=bool(core.pending_threads()), team=core.team(),
     )
     return templates.TemplateResponse(request, name, ctx)
 
@@ -57,7 +57,7 @@ def home(request: Request):
     wiki = sorted(core.list_wiki(), key=lambda w: w["mtime"], reverse=True)
     counts = {s: sum(1 for l in labs if l["status"] == s) for s in core.LAB_STATUSES}
     return page(request, "home.html",
-                mine=[t for t in threads if t["waiting_on"] == core.HUMAN],
+                mine=[t for t in threads if t["waiting_on"] == core.ME],
                 agents=[t for t in threads if t["waiting_on"] == "agents"],
                 recent=sorted(threads, key=lambda t: t["updated"], reverse=True)[:8],
                 labs=list(reversed(labs))[:6], lab_counts=counts, wiki=wiki[:6])
@@ -68,7 +68,7 @@ def discussion(request: Request, view: str = "open", type: str = ""):
     threads = core.list_threads()
     views = {
         "open": lambda t: t["status"] in ("open", "in-progress"),
-        "mine": lambda t: t["waiting_on"] == core.HUMAN,
+        "mine": lambda t: t["waiting_on"] == core.ME,
         "agents": lambda t: t["waiting_on"] == "agents",
         "closed": lambda t: t["status"] in ("resolved", "closed"),
         "all": lambda t: True,
@@ -87,7 +87,7 @@ def discussion_new_form(request: Request, link: str = ""):
 @app.post("/discussion/new")
 def discussion_new(title: str = Form(...), type: str = Form(...), body: str = Form(""),
                    links: str = Form(""), waiting_on: str = Form("agents"), model: str = Form("")):
-    t = core.create_thread(title, type, core.HUMAN, body, links=links, waiting_on=waiting_on, model=model or None)
+    t = core.create_thread(title, type, core.ME, body, links=links, waiting_on=waiting_on, model=model or None)
     return RedirectResponse(f"/discussion/{t['id']}", status_code=303)
 
 
@@ -104,7 +104,7 @@ def thread_page(request: Request, tid: int):
 def thread_comment(tid: int, body: str = Form(""), status: str = Form(""), waiting_on: str = Form(""),
                    model: str = Form("")):
     try:
-        core.add_comment(tid, core.HUMAN, body, status or None, waiting_on or None, model or None)
+        core.add_comment(tid, core.ME, body, status or None, waiting_on or None, model or None)
     except ValueError:
         pass  # empty submit: just reload
     return RedirectResponse(f"/discussion/{tid}#bottom", status_code=303)

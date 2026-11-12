@@ -5,19 +5,19 @@ from dashboard import core
 
 def test_thread_roundtrip_and_waiting_rules(root):
     t = core.create_thread("Which prior?", "decision", "agent:a", "Body with $x$.", links=["lab:1"])
-    assert (t["id"], t["status"], t["waiting_on"]) == (1, "open", core.HUMAN)
+    assert (t["id"], t["status"], t["waiting_on"]) == (1, "open", core.ME)
     assert t["links"] == ["lab:1"] and t["body"] == "Body with $x$."
 
-    t = core.add_comment(1, core.HUMAN, "Use the categorical one.")
+    t = core.add_comment(1, core.ME, "Use the categorical one.")
     assert t["waiting_on"] == "agents"  # human reply hands it back
     t = core.add_comment(1, "agent:a", "Done.", status="resolved")
     assert t["status"] == "resolved" and t["waiting_on"] == "none"
-    assert [c["author"] for c in t["comments"]] == [core.HUMAN, "agent:a"]
+    assert [c["author"] for c in t["comments"]] == [core.ME, "agent:a"]
     assert "status: open → resolved" in t["comments"][1]["body"]
 
 
 def test_thread_defaults_and_ids(root):
-    assert core.create_thread("t", "task", core.HUMAN)["waiting_on"] == "agents"
+    assert core.create_thread("t", "task", core.ME)["waiting_on"] == "agents"
     assert core.create_thread("i", "idea", "agent:a")["waiting_on"] == "none"
     assert [t["id"] for t in core.list_threads()] == [1, 2]
 
@@ -80,9 +80,25 @@ def test_check(seeded):
     assert any("ghost" in p for p in problems) and any("missing" in p for p in problems)
 
 
-def test_human_alias_and_config(root):
-    assert core.HUMAN in core.WAITING and core.PROJECT_NAME
+def test_human_alias_and_config(root, monkeypatch):
+    assert core.PROJECT_NAME
     t = core.create_thread("q", "question", "agent:a", waiting_on="human")
-    assert t["waiting_on"] == core.HUMAN
+    assert t["waiting_on"] == core.ME
     t = core.add_comment(1, "agent:a", "more", waiting_on="human")
-    assert t["waiting_on"] == core.HUMAN
+    assert t["waiting_on"] == core.ME
+    monkeypatch.setenv("DASH_REQUESTER", "bob")  # inside an agent run started by bob's message
+    assert core.create_thread("d", "decision", "agent:a")["waiting_on"] == "bob"
+    assert core.add_comment(1, "agent:a", "?", waiting_on="human")["waiting_on"] == "bob"
+    assert core.add_comment(1, "agent:a", "carla?", waiting_on="carla")["waiting_on"] == "carla"
+    with pytest.raises(ValueError):
+        core.add_comment(1, "agent:a", "x", waiting_on="not a name")
+
+
+def test_team(root):
+    core.create_thread("from bob", "task", "bob", "hi")
+    core.add_comment(1, "carla", "me too")
+    assert core.team_info() == {"people": ["alice", "bob", "carla"], "fetched": "", "source": "threads"}
+    (root / ".dash" / "team.json").write_text('{"people": ["bob", "dave"], "fetched": "2026-01-01 10:00"}')
+    assert core.team() == ["alice", "bob", "dave"]  # GitHub list (+ me) replaces the guess
+    core.add_comment(1, "bob", "carla, can you look?", waiting_on="carla")
+    assert any("not in the team" in p for p in core.check())

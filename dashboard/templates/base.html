@@ -15,6 +15,7 @@
   <a href="/agents">Agents{% if nav_active %} <span class="dot run" title="agent working"></span>{% elif nav_pending and not nav_alive %} <span class="dot stopped" title="threads queued but watcher not running"></span>{% elif nav_paused %} <span class="dot paused" title="paused"></span>{% endif %}</a>
   <a href="/browse/src">Src</a>
   <form action="/search"><input name="q" placeholder="Search…" value="{{ q|default('') }}"></form>
+  <span class="muted small" title="you (me in local.yaml)">👤 {{ core.ME }}</span>
 </nav></header>
 <main>{% block content %}{% endblock %}</main>
 <script src="/static/vendor/katex/katex.min.js"></script>
