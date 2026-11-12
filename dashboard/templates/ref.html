@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}{{ r.key }}{% endblock %}
+{% block content %}
+<p class="small muted"><a href="/refs">Refs</a> / {{ r.key }}</p>
+<h1>{{ r.title }}</h1>
+<div class="layout"><div>
+  <div class="card"><dl class="meta">
+    <dt>authors</dt><dd>{{ r.authors }}</dd><dt>year</dt><dd>{{ r.year }}</dd>
+    {% if r.venue %}<dt>venue</dt><dd>{{ r.venue }}</dd>{% endif %}
+    {% if r.url %}<dt>url</dt><dd><a href="{{ r.url }}" target="_blank">{{ r.url }}</a></dd>{% endif %}
+    {% if r.doi %}<dt>doi</dt><dd>{{ r.doi }}</dd>{% endif %}
+    <dt>added</dt><dd>{{ r.added }} {{ r.added_by }}</dd></dl></div>
+  {% if r.notes %}<div class="card md">{{ md(r.notes)|safe }}</div>{% endif %}
+  {% if r.files %}<div class="card"><b>Files</b><ul class="plain mono small">{% for f in r.files %}<li><a href="/browse/{{ f }}">{{ f.split('/')[-1] }}</a></li>{% endfor %}</ul></div>{% endif %}
+</div><aside class="side">{{ m.backlinks(backlinks) }}</aside></div>
+{% endblock %}

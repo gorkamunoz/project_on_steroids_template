@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Project CLI for agents and humans: ./dash -h
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$DIR/dashboard/env.sh"
+PYTHONPATH="$DIR${PYTHONPATH:+:$PYTHONPATH}" exec "$PY" -m dashboard.cli "$@"

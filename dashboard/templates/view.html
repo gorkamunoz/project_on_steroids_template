@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}{{ path }}{% endblock %}
+{% block content %}
+{% set parts = path.split('/') %}
+<p class="row spread"><span class="mono"><a href="/browse">project</a>{% for p in parts %} / <a href="/browse/{{ parts[:loop.index]|join('/') }}">{{ p }}</a>{% endfor %}</span>
+<a class="small" href="/raw/{{ path }}">raw ({{ (size/1024)|round(1) }}k)</a></p>
+{% if kind == 'md' %}<div class="card md">{{ md(content, path.rsplit('/', 1)[0] if '/' in path else '')|safe }}</div>
+{% elif kind == 'text' %}<pre class="code">{{ content }}</pre>
+{% elif kind == 'image' %}<img src="/raw/{{ path }}" style="max-width:100%;background:#fff">
+{% elif kind == 'pdf' %}<iframe src="/raw/{{ path }}" style="width:100%;height:85vh;border:1px solid var(--line)"></iframe>
+{% else %}<p class="muted">Binary file. <a href="/raw/{{ path }}">Download</a>.</p>{% endif %}
+{% endblock %}

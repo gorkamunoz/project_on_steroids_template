@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Discussion{% endblock %}
+{% block content %}
+<div class="row spread"><h1>Discussion</h1><a class="btn" href="/discussion/new">+ New thread</a></div>
+<div class="tabs">
+{% for k, lbl in [('open','Open'),('mine','Waiting on me'),('agents','Waiting on agents'),('closed','Resolved / closed'),('all','All')] %}
+<a class="{{ 'on' if view == k }}" href="?view={{ k }}{% if type %}&type={{ type }}{% endif %}">{{ lbl }} <span class="muted">{{ counts[k] }}</span></a>
+{% endfor %}</div>
+<p class="chips small">Type: <a href="?view={{ view }}" class="{{ 'muted' if type }}">any</a>
+{% for t in core.THREAD_TYPES %}<a href="?view={{ view }}&type={{ t }}">{{ m.ttype(t) if t == type else t }}</a>{% endfor %}</p>
+<table><thead><tr><th>Thread</th><th>Type</th><th>Status</th><th>Author</th><th>Updated</th></tr></thead><tbody>
+{% for t in threads %}<tr>
+  <td><a href="/discussion/{{ t.id }}"><b>#{{ t.id }}</b> {{ t.title }}</a> {{ m.waiting(t.waiting_on) }}
+    {% if t.comments %}<span class="muted small">💬 {{ t.comments|length }}</span>{% endif %}</td>
+  <td>{{ m.ttype(t.type) }}</td><td>{{ m.tstatus(t.status) }}</td>
+  <td class="small">{{ t.author }}</td><td class="small muted">{{ t.updated }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">No threads here.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

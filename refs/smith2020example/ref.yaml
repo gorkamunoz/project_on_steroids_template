@@ -1,0 +1,11 @@
+title: "[Example] An Example Paper Title"
+authors: Jane Smith, John Doe
+year: "2020"
+venue: Some Conference
+url: https://example.org/paper
+doi: ""
+added: 2026-01-01
+added_by: agent:example
+notes: |
+  EXAMPLE entry showing the format. A real entry says why the source matters for the project
+  and which results (theorem/section numbers) we use.

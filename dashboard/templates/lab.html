@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}{{ lab.code }} {{ lab.title }}{% endblock %}
+{% block content %}
+<h1><span class="muted">{{ lab.code }}</span> {{ lab.title }}</h1>
+<p class="row">{{ m.lab_status(lab.status) }} <span class="muted small">{{ lab.created }}{% if lab.author %} · {{ lab.author }}{% endif %}</span>
+  <a class="small" href="/labs?focus={{ lab.id }}">show in graph</a>
+  <a class="small" href="/discussion/new?link=lab:{{ lab.id }}">+ thread about this lab</a></p>
+{% if lab.error %}<p class="warn">⚠ {{ lab.error }}</p>{% endif %}
+<div class="layout"><div>
+  {% if lab.hypothesis %}<div class="card"><b>Hypothesis</b><div class="md">{{ md(lab.hypothesis)|safe }}</div></div>{% endif %}
+  {% if lab.conclusion %}<div class="card banner"><b>Conclusion</b><div class="md">{{ md(lab.conclusion)|safe }}</div></div>{% endif %}
+  {% if lab.figures %}<h2>Figures</h2><div class="figs">{% for f in lab.figures %}
+    <figure><a href="/raw/{{ f }}" target="_blank"><img src="/raw/{{ f }}" loading="lazy"></a><figcaption>{{ f.split('/')[-1] }}</figcaption></figure>{% endfor %}</div>{% endif %}
+  <h2>Report</h2>
+  <div class="card md">{{ md(lab.report, lab.dir)|safe if lab.report else '<p class="muted">No report.md yet.</p>'|safe }}</div>
+</div><aside class="side">
+  <div class="card"><b>Lineage</b>
+    <p class="small muted" style="margin:6px 0 2px">Parents</p>
+    <ul class="plain small">{% for p in lab.parents %}<li>{{ m.lablink(p, by_id) }}</li>{% else %}<li class="muted">root</li>{% endfor %}</ul>
+    <p class="small muted" style="margin:6px 0 2px">Children</p>
+    <ul class="plain small">{% for c in lab.children %}<li>{{ m.lablink(c, by_id) }}</li>{% else %}<li class="muted">none yet</li>{% endfor %}</ul></div>
+  {% if lab.metrics %}<div class="card"><b>Metrics</b><dl class="meta small">{% for k, v in lab.metrics.items() %}<dt>{{ k }}</dt><dd class="mono">{{ v }}</dd>{% endfor %}</dl></div>{% endif %}
+  {% if lab.tags or lab.wiki %}<div class="card small">
+    {% if lab.tags %}<p><b>Tags</b> {{ lab.tags|join(', ') }}</p>{% endif %}
+    {% if lab.wiki %}<b>Wiki</b><ul class="plain">{% for w in lab.wiki %}<li><a class="xref {{ '' if w in idx.wiki else 'broken' }}" href="/wiki/{{ w }}">{{ idx.wiki.get(w, w) }}</a></li>{% endfor %}</ul>{% endif %}</div>{% endif %}
+  {% if threads %}<div class="card"><b>Threads</b><ul class="plain small">{% for t in threads %}<li>{{ m.tstatus(t.status) }} <a href="/discussion/{{ t.id }}">#{{ t.id }} {{ t.title }}</a></li>{% endfor %}</ul></div>{% endif %}
+  {{ m.backlinks(backlinks) }}
+  <div class="card small"><b>Files</b> <a class="muted" href="/browse/{{ lab.dir }}">({{ lab.dir }})</a><ul class="plain mono">
+    {% for f in lab.files %}<li><a href="/browse/{{ f.path }}">{{ f.name }}</a> <span class="muted">{{ (f.size/1024)|round(1) }}k</span></li>{% endfor %}</ul></div>
+</aside></div>
+{% endblock %}

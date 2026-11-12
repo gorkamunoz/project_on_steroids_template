@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Notes{% endblock %}
+{% block content %}
+<h1>Working notes</h1>
+<p class="muted small">All derivations compiled into one LaTeX document (source: <a href="/browse/notes">notes/</a>).
+Released versions are frozen and git-tagged; ask for a new one in a thread (“release a new version of the notes”).</p>
+{% if versions %}{% set v = versions[0] %}
+<div class="card">
+  <div class="row spread"><h2 style="margin:0">Latest: {{ v.version }} <span class="muted small">{{ v.date }} · {{ v.pages }} pages</span></h2>
+    <div class="row"><a class="btn" href="/notes/{{ v.version }}">Open</a>
+      <a class="btn" href="/raw/{{ v.pdf }}" target="_blank">PDF / print</a>
+      {% if v.diff %}<a class="btn" href="/raw/{{ v.diff }}" target="_blank">Changes vs {{ v.previous }}</a>{% endif %}</div></div>
+  <p><b>{{ v.summary }}</b></p>
+  {% if v.changes %}<ul>{% for c in v.changes %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+</div>
+{% elif not has_source %}<div class="banner">No notes yet. Ask an agent in a thread to create the first version
+(it will follow <a href="/skills/notes">skills/notes</a>).</div>
+{% else %}<div class="banner">The source exists but no version has been released yet.</div>{% endif %}
+{% if draft %}<p class="small">Working draft (unreleased): built {{ draft.built }}, {{ draft.pages }} pages.
+<a href="/notes/draft">open</a> · <a href="/raw/{{ draft.pdf }}" target="_blank">PDF</a></p>{% endif %}
+{% if versions %}<h2>All versions</h2>
+<table><thead><tr><th>Version</th><th>Date</th><th>Pages</th><th>Summary</th><th>Files</th><th>Thread</th></tr></thead><tbody>
+{% for v in versions %}<tr><td><a href="/notes/{{ v.version }}"><b>{{ v.version }}</b></a><div class="muted small mono">{{ v.tag }}</div></td>
+<td class="small muted">{{ v.date }}</td><td class="small">{{ v.pages }}</td>
+<td class="small">{{ v.summary }}{% if v.changes %}<div class="muted">{{ v.changes|join(' · ') }}</div>{% endif %}</td>
+<td class="small"><a href="/raw/{{ v.pdf }}" target="_blank">pdf</a>{% if v.diff %} · <a href="/raw/{{ v.diff }}" target="_blank">diff</a>{% endif %}{% if v.tex %} · <a href="/browse/{{ v.tex }}">tex</a>{% endif %}</td>
+<td class="small">{% if v.thread %}<a href="/discussion/{{ v.thread }}">#{{ v.thread }}</a>{% endif %}</td></tr>
+{% endfor %}</tbody></table>{% endif %}
+{% endblock %}

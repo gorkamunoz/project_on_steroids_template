@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Agents{% endblock %}
+{% block content %}
+<div class="row spread"><h1>Agents</h1>
+<form method="post" action="/agents/pause" class="row">
+  {% if not alive %}<span class="badge r-failed">watcher not running</span>
+  {% elif paused %}<span class="badge t-question">watcher running · paused</span>
+  {% else %}<span class="badge st-open"><span class="dot run"></span> watcher running</span>{% endif %}
+  {% if paused %}<input type="hidden" name="paused" value="0"><button class="btn">Resume</button>
+  {% else %}<input type="hidden" name="paused" value="1"><button class="btn">Pause</button>{% endif %}
+</form></div>
+{% if not alive %}<div class="banner">The queue below is <b>not being processed</b>: no watcher process is running.
+Start it in a terminal with <code>./run_agents.sh</code> (stops when you close it), process just one thread with
+<code>./run_agents.sh once</code>, or install it as an always-on service with <code>./run_agents.sh install</code>.</div>{% endif %}
+<p class="muted small">The watcher (<code>./run_agents.sh</code>) starts one headless Claude Code agent at a time for each thread
+that is <b>waiting on agents</b> where the latest message is yours, or whose snooze has expired. Pausing stops new launches; a running agent finishes.</p>
+<div class="card"><h2>Queue ({{ pending|length }})</h2>
+  {% if pending %}<ul class="plain">{% for t in pending %}<li>{{ m.ttype(t.type) }} <a href="/discussion/{{ t.id }}">#{{ t.id }} {{ t.title }}</a> <span class="muted small">· {{ t.trigger }} · {{ core.thread_model(t) }}</span></li>{% endfor %}</ul>
+  {% else %}<p class="muted">Nothing pending.</p>{% endif %}</div>
+<h2>Runs</h2>
+<table><thead><tr><th>Run</th><th>Thread</th><th>Status</th><th>Model</th><th>Started</th><th>Ended</th><th>Cost</th></tr></thead><tbody>
+{% for r in runs %}<tr>
+  <td class="mono small"><a href="/agents/{{ r.id }}">{{ r.id }}</a></td>
+  <td><a href="/discussion/{{ r.thread }}">#{{ r.thread }}</a> <span class="small">{{ r.title }}</span></td>
+  <td><span class="badge r-{{ r.status }}">{{ r.status }}</span></td>
+  <td class="small mono">{{ r.model or '' }}</td>
+  <td class="small muted">{{ r.started }}</td><td class="small muted">{{ r.ended or '' }}</td>
+  <td class="small mono">{% if r.cost_usd is number %}${{ '%.2f'|format(r.cost_usd) }}{% endif %}</td></tr>
+{% else %}<tr><td colspan="7" class="muted">No runs yet.</td></tr>{% endfor %}</tbody></table>
+{% endblock %}

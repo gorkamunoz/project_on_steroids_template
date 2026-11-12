@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}{{ w.title }}{% endblock %}
+{% block content %}
+<p class="small muted"><a href="/wiki">Wiki</a> / {{ w.slug }}</p>
+<div class="layout"><div class="card md">{{ md(w.body, w.path.rsplit('/', 1)[0])|safe }}</div>
+<aside class="side">
+  <div class="card small"><dl class="meta">
+    {% if w.status %}<dt>status</dt><dd>{{ w.status }}</dd>{% endif %}
+    <dt>updated</dt><dd>{{ w.updated }}</dd>
+    {% if w.tags %}<dt>tags</dt><dd>{% for t in w.tags %}<a href="/wiki?tag={{ t }}">{{ t }}</a> {% endfor %}</dd>{% endif %}
+  </dl></div>
+  {% if w.sources %}<div class="card small"><b>Sources</b><ul class="plain">{% for s in w.sources %}
+    <li><a class="xref {{ '' if s in idx.ref else 'broken' }}" href="/refs/{{ s }}">{{ s }}</a></li>{% endfor %}</ul></div>{% endif %}
+  {{ m.backlinks(w.backlinks) }}
+  <div class="card small muted">File: <a href="/browse/{{ w.path }}">{{ w.path }}</a> · <a href="/discussion/new?link=wiki:{{ w.slug }}">+ thread</a></div>
+</aside></div>
+{% endblock %}

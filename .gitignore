@@ -1,0 +1,54 @@
+# --- heavy experiment artifacts (never commit) ---
+labs/*/outputs/
+labs/*/checkpoints/
+labs/*/data/
+/data/
+wandb/
+mlruns/
+lightning_logs/
+runs/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.npy
+*.npz
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.tar
+*.zip
+*.gz
+
+# --- python / tooling ---
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.venv/
+*.egg-info/
+
+# --- editor / OS / local ---
+.vscode/
+.idea/
+.DS_Store
+.dash.lock
+.claude/settings.local.json
+
+# --- LaTeX build files (keep .tex/.bib/.pdf) ---
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.bbl
+*.blg
+
+# --- autonomous agent runs (transcripts, state) ---
+.agents/
+
+# --- working notes: draft builds and generated stamp ---
+notes/build/
+notes/version.tex

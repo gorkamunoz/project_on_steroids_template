@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}#{{ t.id }} {{ t.title }}{% endblock %}
+{% block content %}
+<h1>{{ t.title }} <span class="muted">#{{ t.id }}</span></h1>
+<p class="row">{{ m.tstatus(t.status) }} {{ m.ttype(t.type) }} {{ m.waiting(t.waiting_on) }}
+  <span class="muted small">opened by <b>{{ t.author }}</b> · {{ t.created }}</span></p>
+{% for r in nav_active if r.thread == t.id %}<p class="banner">🤖 An agent is working on this thread now. <a href="/agents/{{ r.id }}">Watch the run →</a></p>{% endfor %}
+{% if t.wake_at %}<p class="banner">⏰ Snoozed: an agent will look at this again after <b>{{ t.wake_at }}</b>.</p>{% endif %}
+<div class="layout"><div>
+  <div class="comment {{ 'human' if t.author == core.HUMAN }}"><div class="head"><b>{{ t.author }}</b> · {{ t.created }}</div>
+    <div class="md">{{ md(t.body)|safe if t.body else '<p class="muted">No description.</p>'|safe }}</div></div>
+  {% for c in t.comments %}
+  <div class="comment {{ 'human' if c.author == core.HUMAN }}"><div class="head"><b>{{ c.author }}</b> · {{ c.date }}</div>
+    <div class="md">{{ md(c.body)|safe }}</div></div>
+  {% endfor %}
+  <form id="bottom" class="card" method="post" action="/discussion/{{ t.id }}/comment">
+    <label>Reply as {{ core.HUMAN }} <span class="muted small">(markdown, $math$, [[wiki-slug]], [[lab:3]], [[thread:2]] · Ctrl+Enter to send)</span></label>
+    <textarea name="body"></textarea>
+    <div class="row" style="margin-top:8px">
+      <span>Status <select name="status">{% for s in core.THREAD_STATUSES %}<option {{ 'selected' if s == t.status }}>{{ s }}</option>{% endfor %}</select></span>
+      <span>Agent model <select name="model">{% set cur = core.thread_model(t) %}{% if cur not in core.AGENT_MODELS %}<option selected>{{ cur }}</option>{% endif %}{% for x in core.AGENT_MODELS %}<option {{ 'selected' if x == cur }}>{{ x }}</option>{% endfor %}</select></span>
+      <span>Waiting on <select name="waiting_on"><option value="">auto</option>{% for w in core.WAITING %}<option value="{{ w }}">{{ w }}</option>{% endfor %}</select></span>
+      <button class="btn">Comment / update</button>
+    </div>
+    <p class="muted small">"auto": a reply from you hands the thread to the agents; resolving/closing clears it.
+      The agent model applies to this and all later agent runs on the thread.</p>
+  </form>
+</div><aside class="side">
+  <div class="card"><dl class="meta">
+    <dt>id</dt><dd>#{{ t.id }}</dd><dt>type</dt><dd>{{ t.type }}</dd><dt>status</dt><dd>{{ t.status }}</dd>
+    <dt>waiting</dt><dd>{{ t.waiting_on }}</dd>
+    <dt>model</dt><dd>{{ core.thread_model(t) }}{% if not t.model %} <span class="muted small">(default)</span>{% endif %}</dd><dt>updated</dt><dd>{{ t.updated }}</dd>
+    {% if t.labels %}<dt>labels</dt><dd>{{ t.labels|join(', ') }}</dd>{% endif %}
+  </dl></div>
+  {% if links %}<div class="card"><b>Linked</b><ul class="plain">{% for url, text, ok, raw in links %}
+    <li><a class="xref {{ '' if ok else 'broken' }}" href="{{ url }}">{{ text }}</a></li>{% endfor %}</ul></div>{% endif %}
+  <div class="card small muted">File: <a href="/browse/{{ t.path }}">{{ t.path }}</a></div>
+</aside></div>
+{% endblock %}

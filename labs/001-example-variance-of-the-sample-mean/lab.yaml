@@ -1,0 +1,11 @@
+title: "[Example] Variance of the sample mean"
+status: done
+parents: []
+created: '2026-01-01'
+author: agent:example
+hypothesis: For Gaussian samples, the variance of the sample mean decays as sigma^2 / n.
+conclusion: Observed slope -1.00 ± 0.01 on a log-log plot, as expected.
+tags: [example]
+metrics: {slope: "-1.00 ± 0.01", seeds: "5"}
+wiki: [example-concept]
+threads: [1]

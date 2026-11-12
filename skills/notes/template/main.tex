@@ -1,0 +1,98 @@
+% Working notes: all derivations of the project, compiled for printing and review.
+% Build: ./dash notes build      Release a tagged version: ./dash notes release -m "..."
+% Not a paper: no abstract, no "related work" padding. Every result carries its status.
+\InputIfFileExists{version.tex}{}{}
+\providecommand\NotesVersion{DRAFT}\providecommand\NotesDate{\today}\providecommand\NotesStatus{working draft}
+\documentclass[11pt,a4paper]{article}
+
+% ---------------------------------------------------------------- packages
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{bm}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[a4paper,left=25mm,right=45mm,top=25mm,bottom=28mm,marginparwidth=35mm,marginparsep=4mm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage[textsize=scriptsize]{todonotes}
+\usepackage[round,authoryear]{natbib}
+\usepackage[colorlinks=true,allcolors=NavyBlue]{hyperref}
+\usepackage[capitalise,noabbrev]{cleveref}
+\usepackage[pagewise]{lineno}  % line numbers: refer to "p.3 l.25" when reviewing
+\graphicspath{{figures/}}
+
+% line numbers inside amsmath environments
+\newcommand*\patchAmsMathEnvironmentForLineno[1]{%
+  \expandafter\let\csname old#1\expandafter\endcsname\csname #1\endcsname
+  \expandafter\let\csname oldend#1\expandafter\endcsname\csname end#1\endcsname
+  \renewenvironment{#1}{\linenomath\csname old#1\endcsname}{\csname oldend#1\endcsname\endlinenomath}}
+\newcommand*\patchBothAmsMathEnvironmentsForLineno[1]{%
+  \patchAmsMathEnvironmentForLineno{#1}\patchAmsMathEnvironmentForLineno{#1*}}
+\AtBeginDocument{\patchBothAmsMathEnvironmentsForLineno{equation}%
+  \patchBothAmsMathEnvironmentsForLineno{align}\patchBothAmsMathEnvironmentsForLineno{gather}%
+  \patchBothAmsMathEnvironmentsForLineno{multline}\patchBothAmsMathEnvironmentsForLineno{flalign}%
+  \patchBothAmsMathEnvironmentsForLineno{alignat}}
+
+% ---------------------------------------------------------------- page style (version on every page)
+\pagestyle{fancy}\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\fancyhead[L]{\scriptsize\color{gray}Working notes · \NotesVersion\ · \NotesDate}
+\fancyhead[R]{\scriptsize\color{gray}\NotesStatus}
+\fancyfoot[C]{\small\thepage\ / \pageref*{LastPage}}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage\ / \pageref*{LastPage}}}
+
+% ---------------------------------------------------------------- statements
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}{Assumption}
+\crefname{assumption}{Assumption}{Assumptions}  % own counter: cleveref needs the name
+\newtheorem{example}[theorem]{Example}
+\newtheorem{observation}[theorem]{Numerical observation}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+% status tags, shown in the margin of the statement they follow
+\newcommand{\statustag}[2]{\marginpar{\raggedright\scriptsize\textcolor{#1}{\textsf{#2}}}}
+\newcommand{\proved}{\statustag{ForestGreen}{proved}}
+\newcommand{\provedelsewhere}[1]{\statustag{ForestGreen}{proved in \citet{#1}}}
+\newcommand{\numerical}[1]{\statustag{RoyalBlue}{numerical: \lab{#1}}}
+\newcommand{\conjectured}{\statustag{BrickRed}{conjecture}}
+\newcommand{\needscheck}{\statustag{Orange}{proof needs checking}}
+
+% links to the project dashboard (clickable in the PDF viewer)
+\newcommand{\lab}[1]{\href{http://localhost:@@PORT@@/labs/#1}{L\ifnum#1<100 0\fi\ifnum#1<10 0\fi#1}}
+\newcommand{\wiki}[1]{\href{http://localhost:@@PORT@@/wiki/#1}{\nolinkurl{wiki:#1}}}
+\newcommand{\file}[1]{\nolinkurl{#1}}  % repo paths, line-breakable
+\makeatletter\g@addto@macro\UrlBreaks{\do\-\do\_}\makeatother  % let long paths/slugs break at - and _
+\newcommand{\thread}[1]{\href{http://localhost:@@PORT@@/discussion/#1}{\##1}}
+
+% ---------------------------------------------------------------- notation (keep in sync with wiki/notation.md)
+\input{sections/macros}
+
+\title{@@PROJECT_NAME@@\\[2pt]\large Working notes}
+\author{Project notes (internal, not for publication)}
+\date{\NotesVersion\ · \NotesDate\\\small\NotesStatus}
+
+\begin{document}
+\maketitle
+\linenumbers
+\tableofcontents
+
+\input{sections/00-reading-guide}
+% \input{sections/01-setting}      % add one file per part, in reading order
+
+% Uncomment once refs.bib has entries and the text has \cite commands:
+% \bibliographystyle{plainnat}
+% \bibliography{refs}
+\end{document}

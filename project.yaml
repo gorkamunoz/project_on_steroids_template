@@ -1,0 +1,10 @@
+# Project settings, read by the dashboard, the ./dash CLI, the agent watcher and the launch scripts.
+# Edit these before running ./setup.sh for the first time.
+name: My research project       # shown in the dashboard header, page titles and the notes PDF title
+human: alice                    # your handle: threads "waiting on <human>", your dashboard comments
+port: 8010                      # dashboard port: http://localhost:<port>
+conda_env: project_template         # conda environment created by ./setup.sh
+# Models the human can pick per thread in the dashboard (new-thread and reply forms). First entry = default.
+# Aliases (opus, sonnet, ...) always resolve to the newest model of that family, so new versions need no edit.
+# Add a full model id (e.g. claude-opus-5-5) to pin a version; add new families here when they appear.
+agent_models: [opus, fable, sonnet, haiku]

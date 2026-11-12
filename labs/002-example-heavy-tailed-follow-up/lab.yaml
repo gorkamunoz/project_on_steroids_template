@@ -1,0 +1,13 @@
+title: "[Example] Heavy-tailed follow-up"
+status: planned
+parents:
+- 1
+created: '2026-11-12'
+author: agent:example
+hypothesis: "With Student-t (3 dof) samples the 1/n law still holds, but convergence is slower."
+conclusion: ''
+tags:
+- example
+metrics: {}
+wiki: []
+threads: []

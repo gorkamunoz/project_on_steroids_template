@@ -1,0 +1,19 @@
+# Built by ./setup.sh (env name comes from project.yaml: conda_env).
+# Agents: when you install a package, add it here in the same change.
+name: project_template
+channels: [conda-forge]
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      # dashboard
+      - fastapi
+      - uvicorn
+      - jinja2
+      - markdown
+      - pyyaml
+      - python-multipart
+      # tests
+      - pytest
+      - httpx
+      # research dependencies: add below

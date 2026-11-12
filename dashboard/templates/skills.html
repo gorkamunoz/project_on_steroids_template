@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Skills{% endblock %}
+{% block content %}
+<h1>Skills</h1>
+<p class="muted small">Agent workflows. Agents add and refine these as they learn what works.</p>
+<table><tbody>{% for s in skills %}<tr><td><a href="/skills/{{ s.dir }}"><b>{{ s.name }}</b></a></td><td class="small">{{ s.description }}</td></tr>
+{% else %}<tr><td class="muted">No skills yet.</td></tr>{% endfor %}</tbody></table>
+{% endblock %}

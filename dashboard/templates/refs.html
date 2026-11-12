@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Refs{% endblock %}
+{% block content %}
+<h1>References</h1>
+<p class="muted small">Immutable archive of external sources. Knowledge extracted from them lives in the wiki.</p>
+<table><thead><tr><th>Key</th><th>Title</th><th>Authors</th><th>Year</th><th>Files</th></tr></thead><tbody>
+{% for r in refs %}<tr><td class="mono small"><a href="/refs/{{ r.key }}">{{ r.key }}</a></td><td>{{ r.title }}{% if r.error %} <span class="warn small">⚠ {{ r.error }}</span>{% endif %}</td>
+<td class="small">{{ r.authors }}</td><td class="small">{{ r.year }}</td><td class="small">{{ r.files|length }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">No references yet.</td></tr>{% endfor %}</tbody></table>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Home{% endblock %}
+{% block content %}
+<div class="row spread"><h1>Research dashboard</h1><a class="btn" href="/discussion/new">+ New thread</a></div>
+<div class="grid">
+  <div class="card"><h2>⚑ Waiting on you ({{ mine|length }})</h2>
+    {% if mine %}<ul class="plain">{% for t in mine %}{{ m.thread_row(t) }}{% endfor %}</ul>
+    {% else %}<p class="muted">Nothing needs your input.</p>{% endif %}</div>
+  <div class="card"><h2>Agents' queue ({{ agents|length }})</h2>
+    {% if agents %}<ul class="plain">{% for t in agents %}{{ m.thread_row(t) }}{% endfor %}</ul>
+    {% else %}<p class="muted">No open tasks for agents.</p>{% endif %}</div>
+  <div class="card"><h2>Labs</h2>
+    <p class="small">{% for s, n in lab_counts.items() if n %}{{ m.lab_status(s) }} {{ n }} &nbsp;{% endfor %}<a href="/labs">graph →</a></p>
+    <ul class="plain">{% for l in labs %}<li>{{ m.lab_status(l.status) }} <a href="/labs/{{ l.id }}">{{ l.code }} · {{ l.title }}</a>
+      {% if l.conclusion %}<div class="muted small">{{ l.conclusion }}</div>{% endif %}</li>{% else %}<li class="muted">No labs yet.</li>{% endfor %}</ul></div>
+  <div class="card"><h2>Recently updated wiki</h2>
+    <ul class="plain">{% for w in wiki %}<li><a href="/wiki/{{ w.slug }}">{{ w.title }}</a> <span class="muted small">{{ w.mtime }}</span></li>{% else %}<li class="muted">Wiki is empty.</li>{% endfor %}</ul></div>
+  <div class="card"><h2>Recent discussion</h2>
+    <ul class="plain">{% for t in recent %}<li>{{ m.tstatus(t.status) }} <a href="/discussion/{{ t.id }}">#{{ t.id }} {{ t.title }}</a> <span class="muted small">{{ t.updated }}</span></li>{% else %}<li class="muted">No threads yet.</li>{% endfor %}</ul></div>
+</div>
+{% endblock %}

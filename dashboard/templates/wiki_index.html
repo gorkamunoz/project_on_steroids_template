@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Wiki{% endblock %}
+{% block content %}
+<h1>Wiki</h1>
+{% if intro %}<div class="card md">{{ md(intro.body, 'wiki')|safe }}</div>{% endif %}
+{% if tags %}<p class="chips small">Tags: <a href="/wiki">all</a>{% for t in tags %} <a href="/wiki?tag={{ t }}">{% if t == tag %}<b>{{ t }}</b>{% else %}{{ t }}{% endif %}</a>{% endfor %}</p>{% endif %}
+<table><thead><tr><th>Page</th><th>Tags</th><th>Status</th><th>Updated</th></tr></thead><tbody>
+{% for w in pages %}<tr><td><a href="/wiki/{{ w.slug }}">{{ w.title }}</a> <span class="muted small mono">{{ w.slug }}</span></td>
+<td class="small">{{ w.tags|join(', ') }}</td><td class="small">{{ w.status }}</td><td class="small muted">{{ w.updated }}</td></tr>
+{% else %}<tr><td colspan="4" class="muted">No pages.</td></tr>{% endfor %}</tbody></table>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Search{% endblock %}
+{% block content %}
+<h1>Search: “{{ q }}”</h1>
+<ul class="plain">{% for r in results %}<li><span class="badge">{{ r.kind }}</span> <a href="{{ r.url }}">{{ r.title }}</a>
+{% if r.snippet %}<div class="muted small">…{{ r.snippet }}…</div>{% endif %}</li>
+{% else %}<li class="muted">No results.</li>{% endfor %}</ul>
+{% endblock %}

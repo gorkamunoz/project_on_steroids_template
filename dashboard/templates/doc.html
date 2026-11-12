@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>{% if subtitle %}<p class="muted">{{ subtitle }}</p>{% endif %}
+<div class="card md">{{ md(body, path.rsplit('/', 1)[0])|safe }}</div>
+<p class="small muted">File: <a href="/browse/{{ path }}">{{ path }}</a></p>
+{% endblock %}

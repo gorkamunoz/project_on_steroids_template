@@ -1,0 +1,13 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Notes {{ v.version }}{% endblock %}
+{% block content %}
+<p class="small muted"><a href="/notes">Notes</a> / {{ v.version }}</p>
+<div class="row spread"><h1 style="margin:0">Working notes {{ v.version }} <span class="muted small">{{ v.date }} · {{ v.pages }} pages</span></h1>
+<div class="row"><a class="btn" href="/raw/{{ v.pdf }}" target="_blank">PDF / print</a>
+{% if v.diff %}<a class="btn" href="/raw/{{ v.diff }}" target="_blank">Diff PDF</a>{% endif %}</div></div>
+<p><b>{{ v.summary }}</b>{% if v.thread %} · requested in <a href="/discussion/{{ v.thread }}">#{{ v.thread }}</a>{% endif %}
+{% if v.author %} · by {{ v.author }}{% endif %}{% if v.tag %} · git tag <code>{{ v.tag }}</code>{% endif %}</p>
+{% if v.changes %}<ul class="small">{% for c in v.changes %}<li>{{ c }}</li>{% endfor %}</ul>{% endif %}
+{% if v.diff %}<div class="tabs"><a class="{{ 'on' if show == 'pdf' }}" href="?show=pdf">Document</a>
+<a class="{{ 'on' if show == 'diff' }}" href="?show=diff">Changes vs {{ v.previous }}</a></div>{% endif %}
+<iframe src="/raw/{{ v.diff if show == 'diff' else v.pdf }}" style="width:100%;height:85vh;border:1px solid var(--line);border-radius:6px;background:#fff"></iframe>
+{% endblock %}

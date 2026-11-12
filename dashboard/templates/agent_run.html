@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Run {{ run.id }}{% endblock %}
+{% block content %}
+<p class="small muted"><a href="/agents">Agents</a> / {{ run.id }}</p>
+<h1>Run on <a href="/discussion/{{ run.thread }}">#{{ run.thread }} {{ run.title }}</a></h1>
+<div class="card"><dl class="meta">
+  <dt>status</dt><dd><span class="badge r-{{ run.status }}">{{ run.status }}</span>{% if run.status == 'running' %} <span class="muted small">(refresh to update)</span>{% endif %}</dd>
+  <dt>trigger</dt><dd>{{ run.trigger }}</dd>
+  {% if run.model %}<dt>model</dt><dd class="mono">{{ run.model }}</dd>{% endif %}
+  <dt>started</dt><dd>{{ run.started }}{% if run.ended %} → {{ run.ended }}{% endif %}</dd>
+  {% if run.cost_usd is number %}<dt>cost</dt><dd>${{ '%.2f'|format(run.cost_usd) }} · {{ run.turns }} turns</dd>{% endif %}
+  <dt>resume</dt><dd><code>cd {{ core.ROOT }} && claude --resume {{ run.session_id }}</code></dd>
+</dl></div>
+<h2>Transcript</h2>
+{% for e in events %}
+  {% if e.kind == 'text' %}<div class="ev md">{{ md(e.text)|safe }}</div>
+  {% elif e.kind == 'tool' %}<div class="ev tool"><b>{{ e.name }}</b> {{ e.text }}</div>
+  {% elif e.kind == 'error' %}<div class="ev error">✗ {{ e.text }}</div>
+  {% elif e.kind == 'result' %}<div class="ev result"><b>Result</b>{% if e.cost is number %} <span class="muted small">${{ '%.2f'|format(e.cost) }} · {{ e.turns }} turns · {{ e.duration_s }}s</span>{% endif %}<div class="md">{{ md(e.text)|safe }}</div></div>
+  {% else %}<div class="ev tool">{{ e.text }}</div>{% endif %}
+{% else %}<p class="muted">No output yet.</p>{% endfor %}
+{% endblock %}

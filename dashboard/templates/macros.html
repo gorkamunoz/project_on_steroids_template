@@ -1,0 +1,12 @@
+{% macro lab_status(s) %}<span class="badge s-{{ s }}">{{ s }}</span>{% endmacro %}
+{% macro ttype(s) %}<span class="badge t-{{ s }}">{{ s }}</span>{% endmacro %}
+{% macro tstatus(s) %}<span class="badge st-{{ s }}">{{ s }}</span>{% endmacro %}
+{% macro waiting(w) %}{% if w and w != 'none' %}<span class="badge w-{{ w }}">waiting on {{ w }}</span>{% endif %}{% endmacro %}
+{% macro lablink(lid, by_id) %}{% set l = by_id.get(lid) %}<a href="/labs/{{ lid }}">{{ core.lab_code(lid) }}</a>{% if l %} <span class="muted small">{{ l.title }}</span>{% endif %}{% endmacro %}
+{% macro thread_row(t) %}
+<li>{{ ttype(t.type) }} <a href="/discussion/{{ t.id }}">#{{ t.id }} {{ t.title }}</a>
+ <span class="muted small">· {{ t.author }} · {{ t.updated }}{% if t.comments %} · 💬 {{ t.comments|length }}{% endif %}</span></li>
+{% endmacro %}
+{% macro backlinks(items) %}{% if items %}<div class="card"><b>Referenced by</b><ul class="plain">
+{% for b in items %}<li><span class="muted small">{{ b.kind }}</span> <a href="{{ b.url }}">{{ b.text }}</a></li>{% endfor %}
+</ul></div>{% endif %}{% endmacro %}

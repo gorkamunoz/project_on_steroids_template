@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Labs{% endblock %}
+{% block content %}
+<div class="row spread"><h1>Labs</h1>
+<div class="legend">{% for s in core.LAB_STATUSES %}<span><i style="background:var(--{{ s }})"></i>{{ s }}</span>{% endfor %}</div></div>
+<div class="graph-wrap">
+  <div id="graph"></div>
+  <div id="panel" class="card"><p class="muted">Click a lab to see its details. Ancestors and descendants are highlighted; double-click opens the lab.</p></div>
+</div>
+<h2>All labs</h2>
+<table><thead><tr><th>Lab</th><th>Status</th><th>Parents</th><th>Conclusion</th><th>Created</th></tr></thead><tbody>
+{% for l in labs|reverse %}<tr>
+  <td><a href="/labs/{{ l.id }}"><b>{{ l.code }}</b> {{ l.title }}</a>{% if l.error %} <span class="warn small">⚠ {{ l.error }}</span>{% endif %}</td>
+  <td>{{ m.lab_status(l.status) }}</td>
+  <td class="small">{% for p in l.parents %}<a href="/labs/{{ p }}">{{ core.lab_code(p) }}</a> {% endfor %}</td>
+  <td class="small">{{ l.conclusion }}</td><td class="small muted">{{ l.created }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">No labs yet.</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}
+{% block scripts %}
+<script src="/static/vendor/cytoscape.min.js"></script>
+<script src="/static/vendor/dagre.min.js"></script>
+<script src="/static/vendor/cytoscape-dagre.js"></script>
+<script>const GRAPH = {{ graph|tojson }}; const FOCUS = {{ focus|tojson }};</script>
+<script src="/static/labs.js"></script>
+{% endblock %}
