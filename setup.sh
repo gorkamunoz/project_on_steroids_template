@@ -91,7 +91,7 @@ else
 fi
 PYTHONPATH="$DIR" "$PY" -c "from dashboard import sync; sync.ensure_config()" && ok "thread merge rule registered (git config merge.dash-thread)"
 TEMPLATE="$(cfg template_repo '')"
-if ls -d labs/*-example-* >/dev/null 2>&1 && [ -n "$TEMPLATE" ] && [[ "$ORIGIN" != *"$TEMPLATE"* ]] && [ -t 0 ]; then
+if ls -d labs/*-example-* >/dev/null 2>&1 && [ -n "$TEMPLATE" ] && [ -n "$ORIGIN" ] && [[ "$ORIGIN" != *"$TEMPLATE"* ]] && [ -t 0 ]; then
   read -rp "  This looks like a new project made from the template. Remove the example content? [Y/n] " A
   if [[ ! "$A" =~ ^[Nn] ]]; then ./dash examples --remove && ok "example content removed (commit it when ready)"; fi
 fi
