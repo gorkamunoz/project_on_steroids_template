@@ -14,8 +14,9 @@ sync automatically.
 ## Start a project (once)
 
 1. On GitHub, open this template and click **Use this template** → create a **private** repo. Clone it.
-2. In `project.yaml`, set the project `name`. In `CLAUDE.md`, fill in **The project** (research question, scope).
-3. Run `./setup.sh`. It installs everything, logs you in to GitHub, and offers to remove the example content.
+2. Run `./setup.sh`. It installs everything, logs you in to GitHub, names the project after the repo and
+   removes the template's examples.
+3. In `CLAUDE.md`, fill in **The project** (research question, scope).
 4. Commit and push. Add your teammates on GitHub (Settings → Collaborators): they are the team.
 
 ## Join a project

@@ -66,9 +66,11 @@ Triggers: each dashboard action (background), each watcher run, every `AGENT_SYN
 
 ## The template repo
 
-Example content is everything named `example` plus `example_team` in `project.yaml`.
-`./dash examples --remove` deletes it; `setup.sh` offers this in any repo whose `origin` isn't
-`template_repo`. Keep new examples named `*example*` so this keeps working.
+Example content is everything named `example` plus `example_team` in `project.yaml`. When `setup.sh`
+runs in a repo whose `origin` (as `owner/repo`) isn't `template_repo`, it turns the copy into a new project
+once: `name` and `conda_env` become the repo name (before the env is created), `./dash examples --remove`
+deletes the examples, and the `template_repo` lines are dropped so it never runs again. In the template repo
+itself (or with no remote) nothing is removed. Keep new examples named `*example*` so this keeps working.
 
 Watcher knobs (env): `AGENT_POLL_S`, `AGENT_SYNC_S`, `AGENT_TIMEOUT_H`, `AGENT_BUDGET_USD`,
 `AGENT_PERMISSION_MODE`, `AGENT_ALLOW_MCP`, `CLAUDE_BIN`.

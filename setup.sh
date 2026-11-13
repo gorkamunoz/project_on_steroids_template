@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # One-time setup on a new machine (safe to re-run: it updates instead of recreating).
 #   ./setup.sh
+# 0. in a new project made from the template (origin isn't template_repo): names the project and its conda
+#    env after the repo, and (in step 3) deletes the template's example content. Happens once.
 # 1. creates/updates the conda env named in project.yaml (conda_env) from environment.yml
 # 2. checks the external tools: git, LaTeX (for notes/), Claude Code (for agents)
 # 3. you and the team: GitHub login (gh), local.yaml (`me`), the git remote, the thread merge rule,
-#    and (in a new project made from the template) removing the example content
+#    and (in a new project) removing the example content
 # 4. runs the dashboard tests and ./dash check
 set -uo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,6 +15,21 @@ SETUP_ONLY=1 source "$DIR/dashboard/env.sh"   # -> ENV_NAME, PORT
 ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 miss() { printf '  \033[31m✗\033[0m %s\n' "$*"; MISSING=1; }
 MISSING=0
+
+# owner/repo of a GitHub URL (https://github.com/o/r.git or git@github.com:o/r.git)
+repo_slug() { echo "${1%.git}" | sed -E 's#.*[:/]([^/:]+/[^/]+)$#\1#'; }
+ORIGIN="$(git remote get-url origin 2>/dev/null || true)"
+TEMPLATE="$(cfg template_repo '')"
+NEW_PROJECT=0
+if [ -n "$TEMPLATE" ] && [ -n "$ORIGIN" ] && [ "$(repo_slug "$ORIGIN")" != "$TEMPLATE" ]; then
+  NEW_PROJECT=1
+  REPO="$(basename "$(repo_slug "$ORIGIN")")"
+  NEW_ENV="$(echo "$REPO" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9_\n-' '_')"
+  echo "== 0. new project '$REPO' (made from the template $TEMPLATE)"
+  sed -E -i "s/^(name:[[:space:]]*)[^#]*[^#[:space:]]/\1$REPO/; s/^(conda_env:[[:space:]]*)[^#]*[^#[:space:]]/\1$NEW_ENV/" project.yaml
+  ok "project.yaml: name: $REPO, conda_env: $NEW_ENV (edit them if you like)"
+  SETUP_ONLY=1 source "$DIR/dashboard/env.sh"   # re-read: ENV_NAME
+fi
 
 echo "== 1. conda environment '$ENV_NAME'"
 CONDA=""
@@ -83,17 +100,15 @@ else
     miss "who are you? Put 'me: <your GitHub username>' in local.yaml"
   fi
 fi
-ORIGIN="$(git remote get-url origin 2>/dev/null || true)"
 if [ -n "$ORIGIN" ]; then
   ok "git remote: $ORIGIN (changes sync with the team automatically)"
 else
   miss "no git remote: working locally only. To share: git remote add origin https://github.com/<owner>/<repo>.git"
 fi
 PYTHONPATH="$DIR" "$PY" -c "from dashboard import sync; sync.ensure_config()" && ok "thread merge rule registered (git config merge.dash-thread)"
-TEMPLATE="$(cfg template_repo '')"
-if ls -d labs/*-example-* >/dev/null 2>&1 && [ -n "$TEMPLATE" ] && [ -n "$ORIGIN" ] && [[ "$ORIGIN" != *"$TEMPLATE"* ]] && [ -t 0 ]; then
-  read -rp "  This looks like a new project made from the template. Remove the example content? [Y/n] " A
-  if [[ ! "$A" =~ ^[Nn] ]]; then ./dash examples --remove && ok "example content removed (commit it when ready)"; fi
+if [ "$NEW_PROJECT" = 1 ]; then
+  ./dash examples --remove >/dev/null && sed -i '/template_repo/d' project.yaml \
+    && ok "removed the template's example content and demo team (commit and push when ready)"
 fi
 
 echo "== 4. self-test"
