@@ -5,7 +5,7 @@ channels: [conda-forge]
 dependencies:
   - python=3.11
   - pip
-  - gh            # GitHub CLI: who you are and who is on the team (./setup.sh, ./dash team)
+  - gh            # GitHub CLI, optional: if you `gh auth login`, the team list comes from GitHub
   - pip:
       # dashboard
       - fastapi

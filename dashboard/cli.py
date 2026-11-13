@@ -133,7 +133,7 @@ def cmd_team(args):
         print("could not reach GitHub (is `gh` installed and logged in, and is there a GitHub remote?)")
     info = core.team_info()
     src = f"GitHub collaborators, fetched {info['fetched']}" if info["source"] == "github" \
-        else "people seen in threads (run `./dash team --refresh` to load the GitHub collaborators)"
+        else "you + people who have written in threads; optional: `gh auth login`, then `./dash team --refresh`"
     print(f"you: {core.ME}\nteam ({src}):")
     for p in info["people"]:
         print(f"  {p}")

@@ -5,7 +5,7 @@
 #    env after the repo, and (in step 3) deletes the template's example content. Happens once.
 # 1. creates/updates the conda env named in project.yaml (conda_env) from environment.yml
 # 2. checks the external tools: git, LaTeX (for notes/), Claude Code (for agents)
-# 3. you and the team: GitHub login (gh), local.yaml (`me`), the git remote, the thread merge rule,
+# 3. you and the team: local.yaml (`me` = your GitHub username), the git remote, the thread merge rule,
 #    and (in a new project) removing the example content
 # 4. runs the dashboard tests and ./dash check
 set -uo pipefail
@@ -75,17 +75,8 @@ if [ ! -d .git ]; then
   git init -q -b main && ok "initialised a git repository (make your first commit when ready)"
 fi
 
-echo "== 3. you and the team (GitHub)"
-GH="$(dirname "$PY")/gh"; [ -x "$GH" ] || GH="$(command -v gh || true)"
-if [ -n "$GH" ] && ! "$GH" auth status >/dev/null 2>&1 && [ -t 0 ]; then
-  echo "  Log in to GitHub (choose HTTPS; this also lets git push to the repo):"
-  "$GH" auth login && "$GH" auth setup-git
-fi
-if [ -n "$GH" ] && "$GH" auth status >/dev/null 2>&1; then
-  ok "gh: logged in to GitHub"
-else
-  miss "gh is not logged in to GitHub. Run:  $GH auth login   (then re-run ./setup.sh)"
-fi
+echo "== 3. you and the team"
+GH="$(dirname "$PY")/gh"; [ -x "$GH" ] || GH="$(command -v gh || true)"  # optional; used only if already logged in
 if grep -q "^me:" local.yaml 2>/dev/null; then
   ok "local.yaml: $(grep '^me:' local.yaml)"
 else
@@ -103,7 +94,7 @@ fi
 if [ -n "$ORIGIN" ]; then
   ok "git remote: $ORIGIN (changes sync with the team automatically)"
 else
-  miss "no git remote: working locally only. To share: git remote add origin https://github.com/<owner>/<repo>.git"
+  miss "no git remote (this folder wasn't cloned from GitHub): working locally only. To share it: git remote add origin https://github.com/<owner>/<repo>.git"
 fi
 PYTHONPATH="$DIR" "$PY" -c "from dashboard import sync; sync.ensure_config()" && ok "thread merge rule registered (git config merge.dash-thread)"
 if [ "$NEW_PROJECT" = 1 ]; then

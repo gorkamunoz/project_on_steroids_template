@@ -23,11 +23,12 @@ Files on disk are the only state. Per-clone state lives in git-ignored `.dash/` 
 
 - `project.yaml` (shared): `name`, default `port` / `conda_env`, `agent_models` (first = default; aliases
   like `opus` track the newest model), `template_repo`, `example_team`.
-- `local.yaml` (per clone): `me` (GitHub username, written by `setup.sh` from `gh api user`), optional
-  `port` / `conda_env`. `DASH_ME` overrides `me`.
-- Team = the repo's GitHub collaborators (`gh api repos/{owner}/{repo}/collaborators`), cached in
-  `.dash/team.json`, refreshed hourly during sync; plus `me` and `example_team`. Without the cache: people
-  seen in threads.
+- `local.yaml` (per clone): `me` (GitHub username, asked by `setup.sh`), optional `port` / `conda_env`.
+  `DASH_ME` overrides `me`.
+- Team = `me` + `example_team` + everyone who has written in a thread. Optional: if `gh` is logged in
+  (`gh auth login`, never required), the repo's GitHub collaborators replace the thread-based guess
+  (`gh api repos/{owner}/{repo}/collaborators`, cached in `.dash/team.json`, refreshed hourly during sync).
+- Authentication: none of our own. Push/pull use whatever credentials git already has from cloning.
 
 ## Who runs what
 
