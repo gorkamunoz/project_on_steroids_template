@@ -13,7 +13,8 @@ def client(seeded):
 @pytest.mark.parametrize("url", [
     "/", "/discussion", "/discussion?view=mine", "/discussion?view=all&type=task", "/discussion/new",
     "/discussion/1", "/labs", "/labs?focus=2", "/labs/1", "/labs/3", "/wiki", "/wiki/elbo", "/wiki/missing",
-    "/refs", "/refs/k2014", "/skills", "/browse", "/browse/labs", "/search?q=lab",
+    "/refs", "/refs/k2014", "/skills", "/browse", "/browse/labs", "/search?q=lab", "/changes",
+    "/changes?done=3", "/changes?error=oops",
 ])
 def test_pages_render(client, url):
     r = client.get(url)

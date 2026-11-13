@@ -122,6 +122,61 @@ def held_threads() -> list[dict]:
     return [t for t in core.pending_threads() if t["trigger"].startswith("new message")]
 
 
+STATUS_WORDS = {"??": "new", "M": "modified", "A": "added", "D": "deleted", "R": "renamed", "T": "changed"}
+
+
+def uncommitted(limit: int = 20, sizes: bool = False) -> dict:
+    """Your uncommitted changes (made outside the dashboard and agents), for the Changes page.
+    -> {"count": N, "files": first `limit` (word, path), "held": N held messages, "large": [paths > 5 MB]}.
+    Held messages for your agent are left out on purpose. Cheap enough for thousands of files."""
+    out = {"count": 0, "files": [], "held": 0, "large": []}
+    if not is_repo():
+        return out
+    r = git("status", "--porcelain=v1", "-z", "--untracked-files=all")
+    held = {t["path"] for t in held_threads()}
+    items, parts, i = [], r.stdout.split("\0"), 0
+    while i < len(parts):
+        e = parts[i]
+        i += 1
+        if len(e) < 4:
+            continue
+        xy, path = e[:2], e[3:]
+        if "R" in xy or "C" in xy:
+            i += 1  # the original name follows
+        if path in held:
+            out["held"] += 1
+            continue
+        key = "??" if xy == "??" else (xy.strip() or "M")[0]
+        items.append((STATUS_WORDS.get(key, "changed"), path))
+    out["count"], out["files"] = len(items), items[:limit]
+    if sizes:
+        for _, p in items:
+            f = core.ROOT / p
+            if f.is_file() and f.stat().st_size > core.LARGE_FILE:
+                out["large"].append(f"{p} ({f.stat().st_size / 1e6:.0f} MB)")
+    return out
+
+
+def commit_all(message: str) -> int:
+    """Commit everything you changed (except held messages for your agent). Refuses files > 5 MB.
+    Returns the number of files committed."""
+    message = (message or "").strip()
+    if not message:
+        raise SyncError("write a short commit message")
+    if not is_repo():
+        raise SyncError("not a git repository")
+    u = uncommitted(limit=0, sizes=True)
+    if u["large"]:
+        raise SyncError(f"{len(u['large'])} file(s) over 5 MB would be committed: "
+                        + ", ".join(u["large"][:5]) + ". Move them to an outputs/ folder (git-ignored) first.")
+    if not u["count"]:
+        return 0
+    held = [f":(exclude){t['path']}" for t in held_threads()]
+    _ok("add", "-A", "--", ".", *held)
+    _ok("commit", "-q", "-m", message)
+    return u["count"]
+
+
 def commit(paths, message: str, include_held: bool = False) -> bool:
     """Commit just these paths (files or folders, relative to the project). Held thread files are
     skipped unless include_held (the watcher, when its agent starts)."""

@@ -32,7 +32,7 @@ def page(request: Request, name: str, **ctx) -> HTMLResponse:
         nav_waiting=sum(1 for t in core.list_threads() if t["waiting_on"] == core.ME),
         nav_active=agents.active_runs(), nav_paused=agents.is_paused(),
         nav_alive=agents.watcher_alive(), nav_pending=bool(core.pending_threads()), team=core.team(),
-        nav_sync=sync.status(),
+        nav_sync=sync.status(), nav_changes=sync.uncommitted(limit=0)["count"],
     )
     return templates.TemplateResponse(request, name, ctx)
 
@@ -112,6 +112,26 @@ def thread_comment(tid: int, body: str = Form(""), status: str = Form(""), waiti
     except ValueError:
         pass  # empty submit: just reload
     return RedirectResponse(f"/discussion/{tid}#bottom", status_code=303)
+
+
+@app.get("/changes", response_class=HTMLResponse)
+def changes(request: Request, done: int = -1, error: str = ""):
+    return page(request, "changes.html", u=sync.uncommitted(limit=20, sizes=True), busy=bool(agents.active_runs()),
+                done=done, error=error)
+
+
+@app.post("/changes")
+def changes_commit(message: str = Form("")):
+    from urllib.parse import quote
+    if agents.active_runs():
+        return RedirectResponse("/changes?error=" + quote("An agent is working in this folder; wait until it finishes."),
+                                status_code=303)
+    try:
+        n = sync.commit_all(message)
+    except sync.SyncError as e:
+        return RedirectResponse("/changes?error=" + quote(str(e)), status_code=303)
+    sync.safe_sync()
+    return RedirectResponse(f"/changes?done={n}", status_code=303)
 
 
 @app.post("/sync")

@@ -17,6 +17,7 @@
   <form action="/search"><input name="q" placeholder="Search…" value="{{ q|default('') }}"></form>
   <form method="post" action="/sync" class="syncform" title="{{ nav_sync.error or (nav_sync.notes|join('; ')) or 'pull others\' changes and push yours' }}">
     <button class="linkbtn small {{ '' if nav_sync.ok else 'bad' }}">{% if not nav_sync.remote %}⟳ no remote{% elif not nav_sync.ok %}⚠ sync problem{% else %}⟳ synced {{ nav_sync.ago }}{% endif %}</button></form>
+  {% if nav_changes %}<a class="small changes" href="/changes" title="files you changed that are not committed (so not shared)">● {{ nav_changes }} to commit</a>{% endif %}
   <span class="muted small" title="you (me in local.yaml)">👤 {{ core.ME }}</span>
 </nav></header>
 <main>{% if not nav_sync.ok and nav_sync.error %}<p class="banner warn">⚠ Sync problem: {{ nav_sync.error }}</p>{% endif %}

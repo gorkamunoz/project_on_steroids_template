@@ -166,3 +166,28 @@ def test_lab_collision_moves_folder_and_parents(team):
     assert (core.ROOT / bob["dir"] / "outputs" / "ckpt.bin").exists()
     assert bob["outputs_on"] == "bob"
     assert core.check() == []
+
+
+def test_commit_all_lists_a_few_and_blocks_large_files(team):
+    c = team("alice")
+    many = c / "src" / "generated"
+    many.mkdir()
+    for i in range(1500):
+        (many / f"f{i:04d}.py").write_text(f"x = {i}\n")
+    core.create_thread("Agent please", "task", "alice", "go")        # held: not part of "your changes"
+    u = sync.uncommitted(limit=5)
+    assert u["count"] == 1500 and len(u["files"]) == 5 and u["held"] == 1
+    assert u["files"][0][0] == "new"
+    (c / "big.bin").write_bytes(b"0" * (6 * 1024 * 1024))
+    with pytest.raises(sync.SyncError, match="over 5 MB"):
+        sync.commit_all("add generated code")
+    (c / "big.bin").unlink()
+    with pytest.raises(sync.SyncError, match="message"):
+        sync.commit_all("  ")
+    assert sync.commit_all("add generated code") == 1500
+    assert sync.uncommitted()["count"] == 0 and sync.status()["held"] == 1  # the held message stays held
+    sync.sync()
+    team("bob")
+    sync.sync()
+    assert (core.ROOT / "src" / "generated" / "f1499.py").exists()
+    assert 2 not in _titles()

@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Changes{% endblock %}
+{% block content %}
+<h1>Your uncommitted changes</h1>
+<p class="muted small">Files you changed outside the dashboard (code, refs, data…). They stay on this computer until
+you commit them; then the next sync shares them with the team. Threads and your agents' work are committed
+automatically and don't show here.</p>
+{% if error %}<p class="banner warn">⚠ {{ error }}</p>{% endif %}
+{% if done > 0 %}<p class="banner">✓ Committed {{ done }} file{{ 's' if done != 1 }} and synced.</p>{% endif %}
+{% if u.held %}<p class="small muted">✉️ {{ u.held }} message{{ 's' if u.held != 1 }} for your agent {{ 'are' if u.held != 1 else 'is' }} left out on purpose: sent when your agent starts.</p>{% endif %}
+{% if not u.count %}<p class="muted">Nothing to commit.</p>{% else %}
+<div class="card"><b>{{ u.count }} file{{ 's' if u.count != 1 }} changed</b>
+  <ul class="plain mono small">{% for word, p in u.files %}<li><span class="muted">{{ word }}</span> {{ p }}</li>{% endfor %}
+  {% if u.count > u.files|length %}<li class="muted">… and {{ u.count - u.files|length }} more</li>{% endif %}</ul></div>
+{% if u.large %}<p class="banner warn">⚠ Too big for git (over 5 MB): {{ u.large[:5]|join(', ') }}{% if u.large|length > 5 %} and {{ u.large|length - 5 }} more{% endif %}.
+  Move them to an <code>outputs/</code> folder (git-ignored) or add them to <code>.gitignore</code>, then come back.</p>{% endif %}
+{% if busy %}<p class="banner">🤖 An agent is working in this folder; commit after it finishes so its half-done files aren't included.</p>{% endif %}
+<form class="card" method="post" action="/changes">
+  <label>Commit message <span class="muted small">(what and why, one line)</span></label>
+  <input type="text" name="message" required placeholder="e.g. add data loader for the toy dataset" {{ 'disabled' if u.large or busy }}>
+  <p><button class="btn" {{ 'disabled' if u.large or busy }}>Commit all {{ u.count }} &amp; sync</button></p>
+</form>{% endif %}
+{% endblock %}

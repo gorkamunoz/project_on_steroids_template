@@ -191,6 +191,9 @@ def cmd_sync(args):
         print("  " + n)
     held = sync.status()["held"]
     print("✓ synced with the team" + (f" ({held} message(s) held until your agent starts on them)" if held else ""))
+    n = sync.uncommitted(limit=0)["count"]
+    if n:
+        print(f"  {n} file(s) you changed are not committed, so not shared: commit them (dashboard → '{n} to commit')")
 
 
 def cmd_examples(args):
