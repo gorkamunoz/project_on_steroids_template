@@ -17,6 +17,6 @@ automatically and don't show here.</p>
 <form class="card" method="post" action="/changes">
   <label>Commit message <span class="muted small">(what and why, one line)</span></label>
   <input type="text" name="message" required placeholder="e.g. add data loader for the toy dataset" {{ 'disabled' if u.large or busy }}>
-  <p><button class="btn" {{ 'disabled' if u.large or busy }}>Commit all {{ u.count }} &amp; sync</button></p>
+  <p><button class="btn" {{ 'disabled' if u.large or busy }}>Commit &amp; sync ({{ u.count }} file{{ "s" if u.count != 1 }})</button></p>
 </form>{% endif %}
 {% endblock %}

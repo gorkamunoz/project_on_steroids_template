@@ -60,6 +60,10 @@ fi
 
 echo "== 3. you and the team (GitHub)"
 GH="$(dirname "$PY")/gh"; [ -x "$GH" ] || GH="$(command -v gh || true)"
+if [ -n "$GH" ] && ! "$GH" auth status >/dev/null 2>&1 && [ -t 0 ]; then
+  echo "  Log in to GitHub (choose HTTPS; this also lets git push to the repo):"
+  "$GH" auth login && "$GH" auth setup-git
+fi
 if [ -n "$GH" ] && "$GH" auth status >/dev/null 2>&1; then
   ok "gh: logged in to GitHub"
 else

@@ -61,7 +61,7 @@ says whose machine handles it). Its instructions are in `dashboard/agent_prompt.
 | `src/` | Reusable code promoted out of labs | Only code used by ≥2 labs or clearly general. Tested. No one-off scripts. |
 | `skills/` | Agent workflows (`skills/<name>/SKILL.md`) | Improve them when you learn something. See `skills/skill-authoring`. |
 | `discussion/` | Threads: questions, decisions, tasks (`NNNN-slug.md`) | Use `./dash`, don't hand-edit others' comments. |
-| `dashboard/` | The web UI + API + `dash` CLI (`core.py` holds all formats) | Change only when asked; run its tests after. |
+| `dashboard/` | The web UI + API + `dash` CLI + watcher + git sync (`core.py` holds all formats; overview in `DEVELOPERS.md`) | Change only when asked; run its tests after. |
 
 ## Formats (summary; details in each skill)
 
