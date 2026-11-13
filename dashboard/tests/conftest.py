@@ -11,6 +11,7 @@ def root(tmp_path, monkeypatch):
     monkeypatch.setattr(core, "ROOT", tmp_path)
     monkeypatch.setattr(core, "ME", "alice")  # this clone's person in every test
     monkeypatch.setattr(core, "EXAMPLE_TEAM", [])
+    monkeypatch.setattr(core, "MODE", "team")
     monkeypatch.delenv("DASH_REQUESTER", raising=False)
     return tmp_path
 

@@ -27,6 +27,8 @@ def team(tmp_path, monkeypatch):
     clones = {}
     monkeypatch.setattr(core, "ROOT", seed)
     monkeypatch.setattr(core, "ME", "alice")
+    monkeypatch.setattr(core, "MODE", "team")
+    monkeypatch.setattr(core, "EXAMPLE_TEAM", [])
     monkeypatch.delenv("DASH_REQUESTER", raising=False)
     core.create_thread("Shared question", "question", "agent:worker", "Which seed?", waiting_on="none")
     _git(seed, "add", "-A")
@@ -191,3 +193,18 @@ def test_commit_all_lists_a_few_and_blocks_large_files(team):
     sync.sync()
     assert (core.ROOT / "src" / "generated" / "f1499.py").exists()
     assert 2 not in _titles()
+
+
+def test_local_mode_never_pushes(team, monkeypatch):
+    c = team("alice")
+    monkeypatch.setattr(core, "MODE", "local")
+    assert not sync.enabled()
+    t = core.create_thread("Note to self", "question", "alice", "x", waiting_on="none")
+    sync.after_change([t["path"]], "would be committed in team mode")
+    assert t["path"] in _git(c, "status", "--porcelain")      # not committed
+    (c / "notes.txt").write_text("mine")
+    assert sync.commit_all("my work") == 2                      # the Changes page still commits locally
+    head = _git(c, "rev-parse", "HEAD")
+    assert sync.sync()["notes"] == ["local mode: nothing is pushed"]
+    assert _git(c, "rev-parse", "origin/main") != head          # nothing went to the remote
+    assert sync.status()["remote"] is False and sync.status()["mode"] == "local"

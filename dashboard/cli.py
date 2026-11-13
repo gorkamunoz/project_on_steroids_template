@@ -79,7 +79,7 @@ def cmd_lab_new(args):
     from . import sync
     # Reserve the number with the team: pull first, push the new lab right away, so a lab folder never
     # has to be renumbered while a job writes into its outputs/.
-    shared = sync.is_repo() and bool(sync.remote_url())
+    shared = sync.enabled()
     if shared:
         sync.safe_sync()
     p = core.create_lab(args.title, _author(args), args.parents, args.hypothesis or "", args.tags)

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # One-time setup on a new machine (safe to re-run: it updates instead of recreating).
 #   ./setup.sh
-# 0. in a new project made from the template (origin isn't template_repo): names the project and its conda
-#    env after the repo, and (in step 3) deletes the template's example content. Happens once.
+# 0. asks once: team (share through a GitHub repo) or local (only you, nothing pushed); kept in local.yaml.
+#    In a new project made from the template: names the project and its conda env after the repo (team) or
+#    the folder (local), and (in step 3) deletes the template's example content. Happens once.
 # 1. creates/updates the conda env named in project.yaml (conda_env) from environment.yml
 # 2. checks the external tools: git, LaTeX (for notes/), Claude Code (for agents)
 # 3. you and the team: local.yaml (`me` = your GitHub username), the git remote, the thread merge rule,
@@ -18,14 +19,39 @@ MISSING=0
 
 # owner/repo of a GitHub URL (https://github.com/o/r.git or git@github.com:o/r.git)
 repo_slug() { echo "${1%.git}" | sed -E 's#.*[:/]([^/:]+/[^/]+)$#\1#'; }
+[ -d .git ] || { git init -q -b main && ok "initialised a git repository"; }
 ORIGIN="$(git remote get-url origin 2>/dev/null || true)"
 TEMPLATE="$(cfg template_repo '')"
+
+# Team or local? Asked once; the answer is kept in local.yaml (mode: team | local).
+MODE="$(_cfg1 "$DIR/local.yaml" mode)"
+if [ -z "$MODE" ]; then
+  if [ -t 0 ]; then
+    echo "Will you work on this project with others, through a GitHub repo?"
+    read -rp "  [Y] yes, with a team on GitHub   [n] no, only me on this computer (nothing is pushed): " A
+    [[ "$A" =~ ^[Nn] ]] && MODE=local || MODE=team
+  else
+    MODE="$([ -n "$ORIGIN" ] && echo team || echo local)"
+  fi
+  { [ -f local.yaml ] || echo "# This clone only (git-ignored): mode, me = your GitHub username, optional port / conda_env."
+    echo "mode: $MODE            # team = share through the GitHub repo; local = only you, nothing pushed"; } >> local.yaml
+fi
+if [ "$MODE" = team ] && [ -z "$ORIGIN" ] && [ -t 0 ]; then
+  read -rp "  GitHub repo of this project (e.g. https://github.com/you/my-project.git): " URL
+  if [ -n "$URL" ]; then git remote add origin "$URL" && ORIGIN="$URL"; fi
+fi
+
 NEW_PROJECT=0
-if [ -n "$TEMPLATE" ] && [ -n "$ORIGIN" ] && [ "$(repo_slug "$ORIGIN")" != "$TEMPLATE" ]; then
-  NEW_PROJECT=1
-  REPO="$(basename "$(repo_slug "$ORIGIN")")"
+SLUG="$([ -n "$ORIGIN" ] && repo_slug "$ORIGIN")"
+if [ -n "$TEMPLATE" ] && [ "$MODE" = team ] && [ -n "$ORIGIN" ] && [ "$SLUG" != "$TEMPLATE" ]; then
+  NEW_PROJECT=1; REPO="$(basename "$SLUG")"            # your own repo, made with "Use this template"
+elif [ -n "$TEMPLATE" ] && [ "$MODE" = local ] && [ "$SLUG" = "$TEMPLATE" ]; then
+  NEW_PROJECT=1; REPO="$(basename "$DIR")"             # the template cloned to use alone
+  git remote rename origin template && ORIGIN="" && ok "remote 'origin' renamed to 'template': nothing will be pushed to it"
+fi
+if [ "$NEW_PROJECT" = 1 ]; then
   NEW_ENV="$(echo "$REPO" | tr 'A-Z' 'a-z' | tr -c 'a-z0-9_\n-' '_')"
-  echo "== 0. new project '$REPO' (made from the template $TEMPLATE)"
+  echo "== 0. new project '$REPO' (made from the template $TEMPLATE, $MODE mode)"
   sed -E -i "s/^(name:[[:space:]]*)[^#]*[^#[:space:]]/\1$REPO/; s/^(conda_env:[[:space:]]*)[^#]*[^#[:space:]]/\1$NEW_ENV/" project.yaml
   ok "project.yaml: name: $REPO, conda_env: $NEW_ENV (edit them if you like)"
   SETUP_ONLY=1 source "$DIR/dashboard/env.sh"   # re-read: ENV_NAME
@@ -71,10 +97,6 @@ else
   miss "Claude Code CLI (needed only for ./run_agents.sh). Install it, then run 'claude' once to log in."
 fi
 
-if [ ! -d .git ]; then
-  git init -q -b main && ok "initialised a git repository (make your first commit when ready)"
-fi
-
 echo "== 3. you and the team"
 GH="$(dirname "$PY")/gh"; [ -x "$GH" ] || GH="$(command -v gh || true)"  # optional; used only if already logged in
 if grep -q "^me:" local.yaml 2>/dev/null; then
@@ -82,6 +104,7 @@ if grep -q "^me:" local.yaml 2>/dev/null; then
 else
   ME=""
   [ -n "$GH" ] && ME="$("$GH" api user --jq .login 2>/dev/null || true)"
+  [ -z "$ME" ] && [ "$MODE" = local ] && ME="$(whoami)"
   if [ -z "$ME" ] && [ -t 0 ]; then read -rp "  Your GitHub username: " ME; fi
   if [ -n "$ME" ]; then
     { [ -f local.yaml ] || echo "# This clone only (git-ignored). me = your GitHub username; port / conda_env override project.yaml."
@@ -91,7 +114,9 @@ else
     miss "who are you? Put 'me: <your GitHub username>' in local.yaml"
   fi
 fi
-if [ -n "$ORIGIN" ]; then
+if [ "$MODE" = local ]; then
+  ok "local mode: only you, nothing is pushed (to share later: mode: team in local.yaml + a GitHub remote)"
+elif [ -n "$ORIGIN" ]; then
   ok "git remote: $ORIGIN (changes sync with the team automatically)"
 else
   miss "no git remote (this folder wasn't cloned from GitHub): working locally only. To share it: git remote add origin https://github.com/<owner>/<repo>.git"
@@ -99,7 +124,7 @@ fi
 PYTHONPATH="$DIR" "$PY" -c "from dashboard import sync; sync.ensure_config()" && ok "thread merge rule registered (git config merge.dash-thread)"
 if [ "$NEW_PROJECT" = 1 ]; then
   ./dash examples --remove >/dev/null && sed -i '/template_repo/d' project.yaml \
-    && ok "removed the template's example content and demo team (commit and push when ready)"
+    && ok "removed the template's example content and demo team (commit$([ "$MODE" = team ] && echo " and push") when ready)"
 fi
 
 echo "== 4. self-test"

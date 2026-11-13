@@ -1,11 +1,12 @@
 {% extends "base.html" %}{% import "macros.html" as m with context %}{% block title %}Changes{% endblock %}
 {% block content %}
 <h1>Your uncommitted changes</h1>
-<p class="muted small">Files you changed outside the dashboard (code, refs, data…). They stay on this computer until
-you commit them; then the next sync shares them with the team. Threads and your agents' work are committed
-automatically and don't show here.</p>
+{% set shared = nav_sync.remote %}
+<p class="muted small">Files you changed outside the dashboard (code, refs, data…), not yet saved in git.
+{% if shared %}They stay on this computer until you commit them; then the next sync shares them with the team.
+Threads and your agents' work are committed automatically and don't show here.{% endif %}</p>
 {% if error %}<p class="banner warn">⚠ {{ error }}</p>{% endif %}
-{% if done > 0 %}<p class="banner">✓ Committed {{ done }} file{{ 's' if done != 1 }} and synced.</p>{% endif %}
+{% if done > 0 %}<p class="banner">✓ Committed {{ done }} file{{ 's' if done != 1 }}{{ ' and synced' if shared }}.</p>{% endif %}
 {% if u.held %}<p class="small muted">✉️ {{ u.held }} message{{ 's' if u.held != 1 }} for your agent {{ 'are' if u.held != 1 else 'is' }} left out on purpose: sent when your agent starts.</p>{% endif %}
 {% if not u.count %}<p class="muted">Nothing to commit.</p>{% else %}
 <div class="card"><b>{{ u.count }} file{{ 's' if u.count != 1 }} changed</b>
@@ -17,6 +18,6 @@ automatically and don't show here.</p>
 <form class="card" method="post" action="/changes">
   <label>Commit message <span class="muted small">(what and why, one line)</span></label>
   <input type="text" name="message" required placeholder="e.g. add data loader for the toy dataset" {{ 'disabled' if u.large or busy }}>
-  <p><button class="btn" {{ 'disabled' if u.large or busy }}>Commit &amp; sync ({{ u.count }} file{{ "s" if u.count != 1 }})</button></p>
+  <p><button class="btn" {{ 'disabled' if u.large or busy }}>Commit{{ ' &amp; sync' if shared }} ({{ u.count }} file{{ "s" if u.count != 1 }})</button></p>
 </form>{% endif %}
 {% endblock %}

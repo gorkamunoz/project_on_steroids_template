@@ -130,7 +130,8 @@ def changes_commit(message: str = Form("")):
         n = sync.commit_all(message)
     except sync.SyncError as e:
         return RedirectResponse("/changes?error=" + quote(str(e)), status_code=303)
-    sync.safe_sync()
+    if sync.enabled():
+        sync.safe_sync()
     return RedirectResponse(f"/changes?done={n}", status_code=303)
 
 

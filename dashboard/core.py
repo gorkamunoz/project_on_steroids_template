@@ -43,6 +43,8 @@ PROJECT_NAME = CONFIG.get("name") or "Research project"
 PORT = CONFIG.get("port") or "8010"
 # The person using this clone: their GitHub username (written to local.yaml by ./setup.sh).
 ME = (os.environ.get("DASH_ME") or LOCAL.get("me") or getpass.getuser()).strip()
+# "team" (default): share through the git remote. "local": just this person, nothing is ever pushed.
+MODE = (LOCAL.get("mode") or "team").strip()
 
 THREAD_TYPES = ["decision", "task", "question", "idea", "bug"]
 THREAD_STATUSES = ["open", "in-progress", "resolved", "closed"]

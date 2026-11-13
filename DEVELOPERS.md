@@ -23,8 +23,10 @@ Files on disk are the only state. Per-clone state lives in git-ignored `.dash/` 
 
 - `project.yaml` (shared): `name`, default `port` / `conda_env`, `agent_models` (first = default; aliases
   like `opus` track the newest model), `template_repo`, `example_team`.
-- `local.yaml` (per clone): `me` (GitHub username, asked by `setup.sh`), optional `port` / `conda_env`.
-  `DASH_ME` overrides `me`.
+- `local.yaml` (per clone): `mode` (`team` | `local`, asked once by `setup.sh`), `me` (GitHub username;
+  the system user in local mode), optional `port` / `conda_env`. `DASH_ME` overrides `me`.
+- `mode: local` = one person, nothing is ever pushed: `sync.enabled()` is false, so no automatic commits or
+  syncs, no ⟳ in the header, and the Changes page only commits. `team` without an `origin` behaves the same.
 - Team = `me` + `example_team` + everyone who has written in a thread. Optional: if `gh` is logged in
   (`gh auth login`, never required), the repo's GitHub collaborators replace the thread-based guess
   (`gh api repos/{owner}/{repo}/collaborators`, cached in `.dash/team.json`, refreshed hourly during sync).
@@ -67,11 +69,12 @@ Triggers: each dashboard action (background), each watcher run, every `AGENT_SYN
 
 ## The template repo
 
-Example content is everything named `example` plus `example_team` in `project.yaml`. When `setup.sh`
-runs in a repo whose `origin` (as `owner/repo`) isn't `template_repo`, it turns the copy into a new project
-once: `name` and `conda_env` become the repo name (before the env is created), `./dash examples --remove`
-deletes the examples, and the `template_repo` lines are dropped so it never runs again. In the template repo
-itself (or with no remote) nothing is removed. Keep new examples named `*example*` so this keeps working.
+Example content is everything named `example` plus `example_team` in `project.yaml`. `setup.sh` turns a
+copy into a new project once: in team mode when `origin` (as `owner/repo`) isn't `template_repo` (named after
+the repo), in local mode when `origin` *is* the template (named after the folder; `origin` is renamed to
+`template` so nothing can be pushed to it). It sets `name` and `conda_env` (before the env is created), runs
+`./dash examples --remove`, and drops the `template_repo` lines so it never runs again. In the template repo
+itself (team mode, origin = template) or with no remote, nothing is removed. Keep new examples named `*example*` so this keeps working.
 
 Watcher knobs (env): `AGENT_POLL_S`, `AGENT_SYNC_S`, `AGENT_TIMEOUT_H`, `AGENT_BUDGET_USD`,
 `AGENT_PERMISSION_MODE`, `AGENT_ALLOW_MCP`, `CLAUDE_BIN`.

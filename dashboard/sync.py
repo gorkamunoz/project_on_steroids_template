@@ -73,6 +73,12 @@ def _has_rev(rev: str) -> bool:
     return git("rev-parse", "--verify", "--quiet", rev).returncode == 0
 
 
+def enabled() -> bool:
+    """True when changes are shared: team mode and an `origin` remote. In local mode (`mode: local` in
+    local.yaml: one person, this computer) or without a remote, nothing is committed or pushed for you."""
+    return core.MODE != "local" and is_repo() and bool(remote_url())
+
+
 def ensure_config() -> None:
     """Register the thread merge driver in this clone (.gitattributes routes discussion/*.md to it)."""
     if not is_repo():
@@ -101,7 +107,8 @@ def status() -> dict:
         st = json.loads(_status_file().read_text())
     except (OSError, ValueError):
         st = {"last": "", "ok": True, "error": "", "notes": []}
-    st["remote"] = bool(is_repo() and remote_url())
+    st["remote"] = enabled()
+    st["mode"] = core.MODE
     st["held"] = len(held_threads())
     st["ago"] = _ago(st.get("last", ""))
     return st
@@ -329,6 +336,8 @@ def sync(pull: bool = True, attempts: int = 3) -> dict:
     """Fetch, renumber collisions, rebase, push. `pull=False` (used while an agent is working in this
     folder) only pushes when that needs no change to the working tree. Returns the saved status plus
     `mapping` {(kind, old_id): new_id}. Raises SyncError (also recorded in the status)."""
+    if core.MODE == "local":
+        return _save_status(ok=True, error="", notes=["local mode: nothing is pushed"], mapping={})
     if not is_repo():
         return _save_status(ok=False, error="not a git repository", mapping={})
     if not remote_url():
@@ -413,7 +422,7 @@ def after_change(paths, message: str, agent_busy: bool = False) -> None:
     """A person changed something in the dashboard: commit it (unless it's a held message for their
     agent) and sync in the background. While an agent works in this folder, only push.
     Without a remote: nothing (a local-only project)."""
-    if not (is_repo() and remote_url()):
+    if not enabled():
         return
     commit(paths, message)
     sync_soon(pull=not agent_busy)
